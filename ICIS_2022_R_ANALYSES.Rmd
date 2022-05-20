@@ -1,0 +1,200 @@
+---
+title: "Kotoboo_data_viz"
+author: "ASM"
+date: "04/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(broom)
+library(janitor)
+library(readxl)
+library(stringr)
+
+```
+
+
+Read in data
+```{r}
+x_2022_may_qualtrics_data <- read_excel("2022_may_qualtrics_data.xlsx", col_names=c("start_date", "end_date", "status", "progress", "duration_s", "finished", "recorded_date", "response_id","distribution_channel", "user_language", "recaptcha_score","consent", "year_birth", "gender","country", "caregiver_type","visit_kotoboo", "how_helpful_evidence_based", "how_often_internet","which_topics_interest","importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other","importance_other_text", "participate_in_science", "comic_ideas", "comic_ideas_text", "score", "q_language"))
+
+x_2022_may_qualtrics_data<- x_2022_may_qualtrics_data [-c(1,2,3,4),]
+```
+
+
+Exclude data
+```{r}
+x_2022_may_qualtrics_data<- x_2022_may_qualtrics_data %>%
+  filter(year_birth <=2004) %>%
+  filter(year_birth >=1922) %>%
+  filter(consent=="I consent") ##86 participants after exclusions
+```
+
+
+
+Get demographic info
+```{r}
+
+
+#Age range
+x_2022_may_qualtrics_data <- x_2022_may_qualtrics_data %>%
+  mutate(survey_year = 2022) %>%
+  mutate(age = survey_year - as.numeric(year_birth))
+
+range(x_2022_may_qualtrics_data$age) #19-48
+mean(x_2022_may_qualtrics_data$age) #35.37
+
+#Gender
+sum(x_2022_may_qualtrics_data$gender=="Female", na.rm = T) #68
+sum(x_2022_may_qualtrics_data$gender=="Male", na.rm = T)  # 15
+sum(x_2022_may_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #2
+#NA = 1
+
+table(x_2022_may_qualtrics_data$country)
+```
+
+calculate the mean importance of each topic
+```{r}
+mean_importance <- x_2022_may_qualtrics_data %>%
+  select(c("importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other"))%>%
+  pivot_longer(cols=c("importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other"),names_to = "characteristic", values_to= "rating")%>%
+  group_by(characteristic)%>% 
+  mutate(rating = as.numeric(as.character(rating)))
+
+mean_importance <- mean_importance %>%
+  mutate(characteristic = case_when(characteristic == "importance_concrete_advice" ~ "gives concrete advice",
+                                    characteristic == "importance_free" ~ "the content is free",
+                                    characteristic == "importance_easy_to_access" ~ "it's easy to access",
+                                    characteristic == "importance_understandable" ~ "content is understandable",
+                                    characteristic == "importance_engaging" ~ "content is engaging",
+                                    characteristic == "importance_EDI" ~ "fosters equity, diversity and inclusion",
+                                    characteristic == "importance_social_media" ~ "shareable in social media",
+                                    characteristic == "importance_reliable" ~ "the information is reliable",
+                                    characteristic == "importance_evidence_based" ~ "the content is evidence based",
+                                    characteristic == "importance_unpretentious" ~ "the content is unpretentious",
+                                    characteristic == "importance_respectful" ~ "the content is respectful",
+                                    characteristic == "importance_fun" ~ "the content is fun",
+                                    characteristic == "importance_unbiased" ~ "the content is unbiased",
+                                    characteristic == "importance_other" ~ "other reason not listed"))
+
+
+plot<- mean_importance %>%
+  ungroup()%>%
+  group_by(characteristic)%>%
+  summarise(mean = mean(rating, na.rm=T))
+
+plot<- plot %>%
+  mutate(characteristic = fct_reorder(plot$characteristic, plot$mean, .desc = T))
+ 
+ggplot(plot, aes(y=characteristic, x=mean)) +
+  geom_point(size=5)+
+  theme_bw() +
+  labs(x="Importance Ranking 1-14", y="Feature")+
+  xlim(1, 14) + 
+  annotate("text", y=1, x=3, label="most important <-", color="red") +
+  annotate("text", y=1, x=10, label="least important ->", color ="red")
+  
+
+
+#change the x axis scale to 0-14 and change the variables names 
+
+ 
+```
+
+
+
+calculate the proportion of topics considered to be most interesting by parents. 
+```{r}
+by_topic <- x_2022_may_qualtrics_data %>%
+  select(which_topics_interest)%>%
+  drop_na() %>%
+mutate ("language learning in bilingual and multilingual contexts" = case_when(str_detect(which_topics_interest,"Language learning in bilingual and multilingual contexts") ~ "1", TRUE ~ "0")) %>%
+ mutate ("the effect of screen time on language learning" = case_when(str_detect(which_topics_interest,"The effects of screen time on language learning") ~ "1", TRUE ~ "0")) %>%
+   mutate ("language diversity (differences and similarities of languages across the world)" = case_when(str_detect(which_topics_interest,"Language diversity") ~ "1", TRUE ~ "0")) %>%
+    mutate ("learning sign languages" = case_when(str_detect(which_topics_interest,"Learning sign languages") ~ "1", TRUE ~ "0")) %>%
+    mutate ("ways to foster language learning" = case_when(str_detect(which_topics_interest,"Ways to foster language learning") ~ "1", TRUE ~ "0")) %>%
+    mutate ("ways to develop reading/writing abilities" = case_when(str_detect(which_topics_interest,"Ways to develop reading") ~ "1", TRUE ~ "0")) %>%
+     mutate ("ways to foster language learning in children with developmental disorders" = case_when(str_detect(which_topics_interest,"Ways to foster language learning in children with developmental disorders") ~ "1", TRUE ~ "0")) %>%
+   mutate ("debunking commonly believed myths" = case_when(str_detect(which_topics_interest,"Debunking commonly believed myths") ~ "1", TRUE ~ "0")) %>%
+  pivot_longer(cols = c("debunking commonly believed myths", 
+                        "ways to foster language learning in children with developmental disorders",
+                        "ways to develop reading/writing abilities",
+                        "ways to foster language learning",
+                        "learning sign languages",
+                        "language diversity (differences and similarities of languages across the world)",
+                       "the effect of screen time on language learning",
+                       "language learning in bilingual and multilingual contexts"), 
+               names_to = "topic", values_to = "n") %>%
+  filter(n == "1") %>%
+    select(topic) %>%
+  group_by(topic) %>%
+  tally() %>%
+  mutate(prop = n/sum(n))
+
+by_topic <- by_topic %>%
+   mutate(topic = fct_reorder(topic, prop, .desc = TRUE))
+ 
+
+bp<- ggplot(by_topic, aes(x="", y=prop, fill=topic))+
+geom_bar(width = 1, stat = "identity") + 
+scale_fill_manual(values =c("#a7eb96",
+"#c9b2da",
+"#ff9bb4",
+"#ffc297",
+"#fff3b6",
+"#a4d5eb",
+"#8c510a",
+"#01665e"))+
+  labs(y="proportion (topic votes/total votes)", x="")+
+  theme_bw()
+
+bp
+ 
+
+#Run this code only if you want to get the pie chart
+
+pie<- bp + coord_polar("y", start=0)
+
+pie
+```
+
+
+How helpful is it to get evidence based information about language development
+```{r}
+
+helpful <- x_2022_may_qualtrics_data %>%
+  select(how_helpful_evidence_based)%>%
+  drop_na() %>%
+  group_by(how_helpful_evidence_based)%>%
+   tally() %>%
+  mutate(prop = n/sum(n))
+
+
+```
+
+
+
+How often do you use the internet to look for language development information?
+```{r}
+internet <- x_2022_may_qualtrics_data %>%
+  select(how_often_internet)%>%
+  drop_na() %>%
+  group_by(how_often_internet)%>%
+   tally() %>%
+  mutate(prop = n/sum(n))
+
+```
+
+
+```{r}
+kotoboo <- x_2022_may_qualtrics_data %>%
+  select(visit_kotoboo)%>%
+  drop_na() %>%
+  group_by(visit_kotoboo) %>%
+  tally() %>%
+  mutate(prop = n/sum(n))
+```
+
