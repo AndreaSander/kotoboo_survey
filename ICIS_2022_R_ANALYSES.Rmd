@@ -31,6 +31,10 @@ x_2022_may_qualtrics_data<- x_2022_may_qualtrics_data %>%
   filter(year_birth <=2004) %>%
   filter(year_birth >=1922) %>%
   filter(consent=="I consent") ##86 participants after exclusions
+
+#completion range
+
+range(as.numeric(x_2022_may_qualtrics_data$progress)) #31-100 completed
 ```
 
 
@@ -197,4 +201,5 @@ kotoboo <- x_2022_may_qualtrics_data %>%
   tally() %>%
   mutate(prop = n/sum(n))
 ```
+
 
