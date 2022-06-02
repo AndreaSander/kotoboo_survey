@@ -36,7 +36,20 @@ x_2022_may_qualtrics_data<- x_2022_may_qualtrics_data %>%
 
 range(as.numeric(x_2022_may_qualtrics_data$progress)) #31-100 completed
 ```
+##completion rate stats
+```{r}
+average_pop <- x_2022_may_qualtrics_data %>%
+  select(progress)%>%
+  filter(progress!="100") 
 
+mean(as.numeric(average_pop$progress))
+
+table(average_pop$progress)
+
+mean(as.numeric(x_2022_may_qualtrics_data$duration_s))
+median(as.numeric(x_2022_may_qualtrics_data$duration_s))
+table(x_2022_may_qualtrics_data$duration_s)
+```
 
 
 Get demographic info
