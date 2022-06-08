@@ -70,10 +70,102 @@ sum(x_2022_may_qualtrics_data$gender=="Male", na.rm = T)  # 15
 sum(x_2022_may_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #2
 #NA = 1
 
-table(x_2022_may_qualtrics_data$country)
+
 ```
 
-calculate the mean importance of each topic
+
+3. By country info
+```{r}
+
+table(x_2022_may_qualtrics_data$country)
+
+#Map plot or pie chart with country representation
+```
+
+
+4. Caregiver info
+```{r}
+#A. Percentage of caregivers
+careg<- x_2022_may_qualtrics_data %>%
+  select(caregiver_type)
+
+careg_table<- as.data.frame(table(careg$caregiver_type)) 
+
+careg_table<- careg_table %>%
+  mutate(percentage = (Freq/110)*100)
+
+#How to make the graph more informative?? 
+
+```
+
+5. Kotoboo visits
+```{r}
+visits<- x_2022_may_qualtrics_data %>%
+  select(visit_kotoboo)
+
+visits_table<- as.data.frame(table(visits$visit_kotoboo)) 
+
+visits_table<- visits_table %>%
+  mutate(percentage = (Freq/110)*100)
+```
+Highest visits category = Never 56%. Then sometimes 10%. This means that out of the people who do visit the site they only look for some comics, or only visit sporadically. Pretty normal. 
+
+
+6. Evidence based information
+```{r}
+evidence <- x_2022_may_qualtrics_data %>%
+  select(how_helpful_evidence_based)
+
+evidence_table<- as.data.frame(table(evidence$how_helpful_evidence_based)) 
+
+evidence_table <- evidence_table %>%
+  mutate(percentage = (Freq/110)*100) %>%
+  mutate(helpfulness_level = Var1)
+
+evi_plot <- ggplot(evidence_table, aes(x="", y=percentage, fill=helpfulness_level))+
+geom_bar(width = 1, stat = "identity") +
+  labs(y="percentage evidence based helpfulness", x="")+
+  theme_bw()
+
+evi_plot
+
+#Run this code only if you want to get the pie chart
+
+evi_pie<- evi_plot + coord_polar("y", start=0)
+
+evi_pie
+
+```
+7. Internet search frequency
+
+```{r}
+
+internet <- x_2022_may_qualtrics_data %>%
+  select(how_often_internet)
+
+internet_table<- as.data.frame(table(internet$how_often_internet)) 
+
+internet_table <- internet_table %>%
+  mutate(percentage = (Freq/110)*100) %>%
+  mutate(internet_search_frequency = Var1)
+
+internet_plot <- ggplot(internet_table, aes(x="", y=percentage, fill=internet_search_frequency))+
+geom_bar(width = 1, stat = "identity") +
+  labs(y="percentage internet search freq", x="")+
+  theme_bw()
+
+internet_plot
+
+#Run this code only if you want to get the pie chart
+
+internet_pie<- internet_plot + coord_polar("y", start=0)
+
+internet_pie
+```
+
+
+
+8. Calculate the mean importance of each topic
 ```{r}
 mean_importance <- x_2022_may_qualtrics_data %>%
   select(c("importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other"))%>%
@@ -123,7 +215,7 @@ ggplot(plot, aes(y=characteristic, x=mean)) +
 
 
 
-calculate the proportion of topics considered to be most interesting by parents. 
+9. calculate the proportion of topics considered to be most interesting by parents. 
 ```{r}
 by_topic <- x_2022_may_qualtrics_data %>%
   select(which_topics_interest)%>%
@@ -179,40 +271,36 @@ pie
 ```
 
 
-How helpful is it to get evidence based information about language development
+10. Do comics make you want to participate in studies?
+
 ```{r}
 
-helpful <- x_2022_may_qualtrics_data %>%
-  select(how_helpful_evidence_based)%>%
-  drop_na() %>%
-  group_by(how_helpful_evidence_based)%>%
-   tally() %>%
-  mutate(prop = n/sum(n))
+```
+
+
+############### STATISTICS ###############
+
+1.lmms
+
+```{r}
+#how_often_internet ~ gender + country + (1|subject) ?? As it is I don't think caregivertype is really interesting
+
+
+```
+
+2. Linear regression
+
+```{r}
+#internet search correlated with most important factor. I think we need a boxplot first.
+
+#how_often_internet ~ importance. What is the intercept here?? I'm a bit confused about the predictor because we have them as separate columns per topic. Is each topics importance a predictor? Not sure that will converge. Do we make a model for each topic? Or do we somehow make a summary column about the mean importance and use that as a predictor?
 
 
 ```
 
 
-
-How often do you use the internet to look for language development information?
-```{r}
-internet <- x_2022_may_qualtrics_data %>%
-  select(how_often_internet)%>%
-  drop_na() %>%
-  group_by(how_often_internet)%>%
-   tally() %>%
-  mutate(prop = n/sum(n))
-
 ```
 
 
-```{r}
-kotoboo <- x_2022_may_qualtrics_data %>%
-  select(visit_kotoboo)%>%
-  drop_na() %>%
-  group_by(visit_kotoboo) %>%
-  tally() %>%
-  mutate(prop = n/sum(n))
-```
 
 
