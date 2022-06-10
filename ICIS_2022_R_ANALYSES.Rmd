@@ -94,7 +94,7 @@ careg_table<- as.data.frame(table(careg$caregiver_type))
 careg_table<- careg_table %>%
   mutate(percentage = (Freq/110)*100)
 
-#How to make the graph more informative?? 
+#How to make the graph more informative??. Pivot wider and clarify repeated measures
 
 ```
 
@@ -161,6 +161,13 @@ internet_plot
 internet_pie<- internet_plot + coord_polar("y", start=0)
 
 internet_pie
+
+internet_plot2 <- ggplot(internet_table, aes(x="", y=percentage, fill=internet_search_frequency))+
+geom_bar(width = 1, stat = "dodge") +
+  labs(y="percentage internet search freq", x="")+
+  theme_bw()
+
+internet_plot2
 ```
 
 
@@ -283,7 +290,10 @@ pie
 1.lmms
 
 ```{r}
-#how_often_internet ~ gender + country + (1|subject) ?? As it is I don't think caregivertype is really interesting
+#Boxplots para correlaciones
+#Maybe lm instead ? because we don;t really need the random effects right?
+
+#how_often_internet ~ gender + country + (1|subject) ?? As it is I don't think caregivertype is really interesting parent vs. no parent predictor? ANOVA between lmM and see if adding parent helped or not.
 
 
 ```
@@ -294,6 +304,8 @@ pie
 #internet search correlated with most important factor. I think we need a boxplot first.
 
 #how_often_internet ~ importance. What is the intercept here?? I'm a bit confused about the predictor because we have them as separate columns per topic. Is each topics importance a predictor? Not sure that will converge. Do we make a model for each topic? Or do we somehow make a summary column about the mean importance and use that as a predictor?
+
+#Correlation matrix splom function? 
 
 
 ```
