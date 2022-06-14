@@ -87,14 +87,28 @@ table(x_2022_may_qualtrics_data$country)
 ```{r}
 #A. Percentage of caregivers
 careg<- x_2022_may_qualtrics_data %>%
-  select(caregiver_type)
+  select(caregiver_type) %>%
+  mutate(parent = case_when(str_detect(caregiver_type, "Parent")==TRUE ~"TRUE",
+                            TRUE~"FALSE"))
 
-careg_table<- as.data.frame(table(careg$caregiver_type)) 
+careg_table<- as.data.frame(table(careg$parent)) 
 
 careg_table<- careg_table %>%
-  mutate(percentage = (Freq/110)*100)
+  mutate(percentage = (Freq/110)*100)%>%
+  mutate("respondent was a parent" = Var1)
 
-#How to make the graph more informative??. Pivot wider and clarify repeated measures
+careg_plot <- ggplot(careg_table, aes(x="", y=percentage, fill=`respondent was a parent`))+
+geom_bar(width = 1, stat = "identity") +
+  labs(y="percentage of caregiver who were parents", x="")+
+  theme_bw()
+
+careg_plot
+
+careg_pie<- careg_plot + coord_polar("y", start=0)
+
+careg_pie
+
+#I went a bit simpler here because making the other caregiver distinctions its going to be a lot of work, specially for a poster.
 
 ```
 
@@ -122,6 +136,8 @@ evidence_table <- evidence_table %>%
   mutate(percentage = (Freq/110)*100) %>%
   mutate(helpfulness_level = Var1)
 
+
+
 evi_plot <- ggplot(evidence_table, aes(x="", y=percentage, fill=helpfulness_level))+
 geom_bar(width = 1, stat = "identity") +
   labs(y="percentage evidence based helpfulness", x="")+
@@ -134,6 +150,14 @@ evi_plot
 evi_pie<- evi_plot + coord_polar("y", start=0)
 
 evi_pie
+
+# Run this code for side by side bars, probably we need to change the scale for y though!
+evi_plot_col <- ggplot(evidence_table, aes(x=helpfulness_level, y=percentage, fill=helpfulness_level))+
+geom_col() +
+  labs(y="percentage evidence based helpfulness", x="")+
+  theme_bw()
+
+evi_plot_col
 
 ```
 7. Internet search frequency
@@ -290,12 +314,21 @@ pie
 1.lmms
 
 ```{r}
-#Boxplots para correlaciones
+#First we will need dummy variables
+library(fastDummies)
+
+lm1<- x_2022_may_qualtrics_data %>%
+  dummy_cols(select_columns = "gender", ignore_na = T)
+
+#Then for the DV which would be internet use, we should I guess divide it into columns and use as a binary predictor uses internet frequently or not. I think I will collapse groups as 1) Uses the internet to look for info (collapses frequently, often, ocasionally) and 0) does not use the internet (rarely, never)
+
+ggplot(x_2022_may_qualtrics_data, x=gender, y=how_often_internet)+
+  geom_boxplot()
+
+
 #Maybe lm instead ? because we don;t really need the random effects right?
 
-#how_often_internet ~ gender + country + (1|subject) ?? As it is I don't think caregivertype is really interesting parent vs. no parent predictor? ANOVA between lmM and see if adding parent helped or not.
-
-
+#how_often_internet ~ gender + country ??
 ```
 
 2. Linear regression
