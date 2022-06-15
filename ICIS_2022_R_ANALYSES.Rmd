@@ -311,24 +311,27 @@ pie
 
 ############### STATISTICS ###############
 
-1.lmms
+1.linear regressions
 
 ```{r}
-#First we will need dummy variables
+#First we will need dummy variables and to make internet use into a binary variable (yes or no).
 library(fastDummies)
 
 lm1<- x_2022_may_qualtrics_data %>%
-  dummy_cols(select_columns = "gender", ignore_na = T)
+  dummy_cols(select_columns = "gender", ignore_na = T) %>%
+  dummy_cols(select_columns = "country", ignore_na = T) %>%
+  mutate(internet_usage = case_when(str_detect(how_often_internet, "Frequently") ~1,
+                                    str_detect(how_often_internet, "Often")~1,
+                                    str_detect(how_often_internet, "Occasionally")~1,
+                                    TRUE~0))
 
-#Then for the DV which would be internet use, we should I guess divide it into columns and use as a binary predictor uses internet frequently or not. I think I will collapse groups as 1) Uses the internet to look for info (collapses frequently, often, ocasionally) and 0) does not use the internet (rarely, never)
+lm1<- clean_names(lm1)
 
-ggplot(x_2022_may_qualtrics_data, x=gender, y=how_often_internet)+
-  geom_boxplot()
+i1<- glm(internet_usage~ gender_female, data=lm1, family="binomial")
 
+summary(i1)
 
-#Maybe lm instead ? because we don;t really need the random effects right?
-
-#how_often_internet ~ gender + country ??
+#I can run one model per gender , but running one per country would be too much no? Maybe we can also cluster the countries into a binary western-non western variable?? instead of a thousand dummy coded variables lol
 ```
 
 2. Linear regression
