@@ -19,36 +19,37 @@ library(stringr)
 
 Read in data
 ```{r}
-x_2022_may_qualtrics_data <- read_excel("2022_may_qualtrics_data.xlsx", col_names=c("start_date", "end_date", "status", "progress", "duration_s", "finished", "recorded_date", "response_id","distribution_channel", "user_language", "recaptcha_score","consent", "year_birth", "gender","country", "caregiver_type","visit_kotoboo", "how_helpful_evidence_based", "how_often_internet","which_topics_interest","importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other","importance_other_text", "participate_in_science", "comic_ideas", "comic_ideas_text", "score", "q_language"))
+x_2022_june_qualtrics_data <- read_excel("2022_june_qualtrics_data.xlsx", col_names=c("start_date", "end_date", "status", "progress", "duration_s", "finished", "recorded_date", "response_id","distribution_channel", "user_language", "recaptcha_score","consent", "year_birth", "gender","country", "caregiver_type","visit_kotoboo", "how_helpful_evidence_based", "how_often_internet","which_topics_interest","importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other","importance_other_text", "participate_in_science", "comic_ideas", "comic_ideas_text", "sc0_score", "language", "q_language"))
 
-x_2022_may_qualtrics_data<- x_2022_may_qualtrics_data [-c(1,2,3,4),]
+x_2022_june_qualtrics_data<- x_2022_june_qualtrics_data [-c(1,2,3,4),]
 ```
 
 
 Exclude data
 ```{r}
-x_2022_may_qualtrics_data<- x_2022_may_qualtrics_data %>%
+x_2022_june_qualtrics_data<- x_2022_june_qualtrics_data %>%
   filter(year_birth <=2004) %>%
   filter(year_birth >=1922) %>%
-  filter(consent=="I consent") ##86 participants after exclusions
+  filter(consent=="I consent") 
 
 #completion range
 
-range(as.numeric(x_2022_may_qualtrics_data$progress)) #31-100 completed
+range(as.numeric(x_2022_june_qualtrics_data$progress)) #31-100 completed
 ```
 ##completion rate stats
 ```{r}
-average_pop <- x_2022_may_qualtrics_data %>%
+average_pop <- x_2022_june_qualtrics_data %>%
   select(progress)%>%
   filter(progress!="100") 
-
+#average progress
 mean(as.numeric(average_pop$progress))
 
 table(average_pop$progress)
 
-mean(as.numeric(x_2022_may_qualtrics_data$duration_s))
-median(as.numeric(x_2022_may_qualtrics_data$duration_s))
-table(x_2022_may_qualtrics_data$duration_s)
+#average time spent in survey (take median as the better measure)
+mean(as.numeric(x_2022_june_qualtrics_data$duration_s))
+median(as.numeric(x_2022_june_qualtrics_data$duration_s))
+table(x_2022_june_qualtrics_data$duration_s)
 ```
 
 
@@ -57,17 +58,17 @@ Get demographic info
 
 
 #Age range
-x_2022_may_qualtrics_data <- x_2022_may_qualtrics_data %>%
+x_2022_june_qualtrics_data <- x_2022_june_qualtrics_data %>%
   mutate(survey_year = 2022) %>%
   mutate(age = survey_year - as.numeric(year_birth))
 
-range(x_2022_may_qualtrics_data$age) #19-48
-mean(x_2022_may_qualtrics_data$age) #35.37
+range(x_2022_june_qualtrics_data$age) #19-63 years
+mean(x_2022_june_qualtrics_data$age) #35.58 years
 
 #Gender
-sum(x_2022_may_qualtrics_data$gender=="Female", na.rm = T) #68
-sum(x_2022_may_qualtrics_data$gender=="Male", na.rm = T)  # 15
-sum(x_2022_may_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #2
+sum(x_2022_june_qualtrics_data$gender=="Female", na.rm = T) #123 female
+sum(x_2022_june_qualtrics_data$gender=="Male", na.rm = T)  # 32 male
+sum(x_2022_june_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #4 
 #NA = 1
 
 
@@ -77,16 +78,16 @@ sum(x_2022_may_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #2
 3. By country info
 ```{r}
 
-table(x_2022_may_qualtrics_data$country)
+country_table<- as.data.frame(table(x_2022_june_qualtrics_data$country))
 
-#Map plot or pie chart with country representation
+#I will make a png map with this info
 ```
 
 
 4. Caregiver info
 ```{r}
 #A. Percentage of caregivers
-careg<- x_2022_may_qualtrics_data %>%
+careg<- x_2022_june_qualtrics_data %>%
   select(caregiver_type) %>%
   mutate(parent = case_when(str_detect(caregiver_type, "Parent")==TRUE ~"TRUE",
                             TRUE~"FALSE"))
@@ -94,17 +95,19 @@ careg<- x_2022_may_qualtrics_data %>%
 careg_table<- as.data.frame(table(careg$parent)) 
 
 careg_table<- careg_table %>%
-  mutate(percentage = (Freq/110)*100)%>%
+  mutate(percentage = (Freq/160)*100)%>%
   mutate("respondent was a parent" = Var1)
 
 careg_plot <- ggplot(careg_table, aes(x="", y=percentage, fill=`respondent was a parent`))+
-geom_bar(width = 1, stat = "identity") +
+geom_bar(width = 1, stat = "identity") + geom_text(aes(label = percentage),
+            position = position_stack(vjust = 0.5))+
   labs(y="percentage of caregiver who were parents", x="")+
+  scale_fill_manual(values=c("#e7a8a6", "#a7eb96"))+
   theme_bw()
 
 careg_plot
 
-careg_pie<- careg_plot + coord_polar("y", start=0)
+careg_pie<- careg_plot + coord_polar("y", start=0) + theme_void()
 
 careg_pie
 
@@ -114,40 +117,45 @@ careg_pie
 
 5. Kotoboo visits
 ```{r}
-visits<- x_2022_may_qualtrics_data %>%
+visits<- x_2022_june_qualtrics_data %>%
   select(visit_kotoboo)
 
 visits_table<- as.data.frame(table(visits$visit_kotoboo)) 
 
 visits_table<- visits_table %>%
-  mutate(percentage = (Freq/110)*100)
+  mutate(percentage = (Freq/160)*100)
 ```
 Highest visits category = Never 56%. Then sometimes 10%. This means that out of the people who do visit the site they only look for some comics, or only visit sporadically. Pretty normal. 
 
 
 6. Evidence based information
 ```{r}
-evidence <- x_2022_may_qualtrics_data %>%
+#I have made 3 types of graphs so you can pick whatever suits better the poster
+evidence <- x_2022_june_qualtrics_data %>%
   select(how_helpful_evidence_based)
 
 evidence_table<- as.data.frame(table(evidence$how_helpful_evidence_based)) 
 
 evidence_table <- evidence_table %>%
-  mutate(percentage = (Freq/110)*100) %>%
+  mutate(percentage = (Freq/144)*100) %>%
+  mutate(percentage = round(percentage, digits=0)) %>%
   mutate(helpfulness_level = Var1)
 
 
 
 evi_plot <- ggplot(evidence_table, aes(x="", y=percentage, fill=helpfulness_level))+
 geom_bar(width = 1, stat = "identity") +
-  labs(y="percentage evidence based helpfulness", x="")+
+  geom_text(aes(label = percentage),
+            position = position_stack(vjust = 0.5))+
+  labs(y="percentage evidence based helpfulness", x="")+  
+  scale_fill_manual(values=c("#e7a8a6", "#a7eb96", "#ffb078"))+
   theme_bw()
 
 evi_plot
 
 #Run this code only if you want to get the pie chart
 
-evi_pie<- evi_plot + coord_polar("y", start=0)
+evi_pie<- evi_plot + coord_polar("y", start=0) + theme_void()
 
 evi_pie
 
@@ -155,6 +163,10 @@ evi_pie
 evi_plot_col <- ggplot(evidence_table, aes(x=helpfulness_level, y=percentage, fill=helpfulness_level))+
 geom_col() +
   labs(y="percentage evidence based helpfulness", x="")+
+  geom_text(aes(label = percentage),
+            position = position_stack(vjust = 0.5))+
+  labs(y="percentage evidence based helpfulness", x="")+  
+  scale_fill_manual(values=c("#e7a8a6", "#a7eb96", "#ffb078"))+
   theme_bw()
 
 evi_plot_col
@@ -164,41 +176,40 @@ evi_plot_col
 
 ```{r}
 
-internet <- x_2022_may_qualtrics_data %>%
+internet <- x_2022_june_qualtrics_data %>%
   select(how_often_internet)
 
 internet_table<- as.data.frame(table(internet$how_often_internet)) 
 
 internet_table <- internet_table %>%
-  mutate(percentage = (Freq/110)*100) %>%
+  mutate(percentage = (Freq/142)*100) %>%
+    mutate(percentage = round(percentage, digits=0)) %>%
   mutate(internet_search_frequency = Var1)
 
 internet_plot <- ggplot(internet_table, aes(x="", y=percentage, fill=internet_search_frequency))+
 geom_bar(width = 1, stat = "identity") +
+  geom_text(aes(label = percentage),
+            position = position_stack(vjust = 0.5))+
   labs(y="percentage internet search freq", x="")+
+  scale_fill_manual(values=c("#e7a8a6", "#a7eb96", "#ffb078","#b8cfec", "#b795d1"))+
   theme_bw()
 
 internet_plot
 
 #Run this code only if you want to get the pie chart
 
-internet_pie<- internet_plot + coord_polar("y", start=0)
+internet_pie<- internet_plot + coord_polar("y", start=0) + theme_void()
 
 internet_pie
 
-internet_plot2 <- ggplot(internet_table, aes(x="", y=percentage, fill=internet_search_frequency))+
-geom_bar(width = 1, stat = "dodge") +
-  labs(y="percentage internet search freq", x="")+
-  theme_bw()
 
-internet_plot2
 ```
 
 
 
 8. Calculate the mean importance of each topic
 ```{r}
-mean_importance <- x_2022_may_qualtrics_data %>%
+mean_importance <- x_2022_june_qualtrics_data %>%
   select(c("importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other"))%>%
   pivot_longer(cols=c("importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other"),names_to = "characteristic", values_to= "rating")%>%
   group_by(characteristic)%>% 
@@ -239,7 +250,7 @@ ggplot(plot, aes(y=characteristic, x=mean)) +
   
 
 
-#change the x axis scale to 0-14 and change the variables names 
+
 
  
 ```
@@ -248,7 +259,7 @@ ggplot(plot, aes(y=characteristic, x=mean)) +
 
 9. calculate the proportion of topics considered to be most interesting by parents. 
 ```{r}
-by_topic <- x_2022_may_qualtrics_data %>%
+by_topic <- x_2022_june_qualtrics_data %>%
   select(which_topics_interest)%>%
   drop_na() %>%
 mutate ("language learning in bilingual and multilingual contexts" = case_when(str_detect(which_topics_interest,"Language learning in bilingual and multilingual contexts") ~ "1", TRUE ~ "0")) %>%
@@ -272,23 +283,26 @@ mutate ("language learning in bilingual and multilingual contexts" = case_when(s
     select(topic) %>%
   group_by(topic) %>%
   tally() %>%
-  mutate(prop = n/sum(n))
+  mutate(percentage = (n/sum(n))*100) %>%
+  mutate(percentage = round(percentage, digits=0))
 
 by_topic <- by_topic %>%
-   mutate(topic = fct_reorder(topic, prop, .desc = TRUE))
+   mutate(topic = fct_reorder(topic, percentage, .desc = TRUE))
  
 
-bp<- ggplot(by_topic, aes(x="", y=prop, fill=topic))+
+bp<- ggplot(by_topic, aes(x="", y=percentage, fill=topic))+
 geom_bar(width = 1, stat = "identity") + 
 scale_fill_manual(values =c("#a7eb96",
-"#c9b2da",
+"#c9b2daff",
 "#ff9bb4",
 "#ffc297",
+"#f0aae5ff",
 "#fff3b6",
-"#a4d5eb",
-"#8c510a",
-"#01665e"))+
-  labs(y="proportion (topic votes/total votes)", x="")+
+"#a7ffd3ff",
+"#a4d5eb"))+
+    geom_text(aes(label = percentage),
+            position = position_stack(vjust = 0.5))+
+  labs(y="percentage votes", x="")+
   theme_bw()
 
 bp
@@ -296,7 +310,7 @@ bp
 
 #Run this code only if you want to get the pie chart
 
-pie<- bp + coord_polar("y", start=0)
+pie<- bp + coord_polar("y", start=0) + theme_void()
 
 pie
 ```
@@ -305,7 +319,31 @@ pie
 10. Do comics make you want to participate in studies?
 
 ```{r}
+particip<- x_2022_june_qualtrics_data %>%
+  select(participate_in_science) 
 
+particip_table<- as.data.frame(table(particip$participate_in_science)) 
+
+particip_table<- particip_table %>%
+  mutate(percentage = (Freq/123)*100)%>%
+  mutate (percentage = round(percentage, digits=0))%>%
+  mutate("participate_in_science" = Var1)
+
+careg_plot <- ggplot(particip_table, aes(x="", y=percentage, fill=`participate_in_science`))+
+geom_bar(width = 1, stat = "identity") + geom_text(aes(label = percentage),
+            position = position_stack(vjust = 0.5))+
+  labs(y="percentage of votes", x="")+
+  scale_fill_manual(values=c("#a7eb96",
+"#c9b2daff",
+"#ff9bb4",
+"#ffc297"))+
+  theme_bw()
+
+careg_plot
+
+careg_pie<- careg_plot + coord_polar("y", start=0) + theme_void()
+
+careg_pie
 ```
 
 
@@ -317,21 +355,63 @@ pie
 #First we will need dummy variables and to make internet use into a binary variable (yes or no).
 library(fastDummies)
 
-lm1<- x_2022_may_qualtrics_data %>%
-  dummy_cols(select_columns = "gender", ignore_na = T) %>%
-  dummy_cols(select_columns = "country", ignore_na = T) %>%
+lm1<- x_2022_june_qualtrics_data %>%
   mutate(internet_usage = case_when(str_detect(how_often_internet, "Frequently") ~1,
                                     str_detect(how_often_internet, "Often")~1,
                                     str_detect(how_often_internet, "Occasionally")~1,
-                                    TRUE~0))
+                                    TRUE~0)) %>%
+  mutate(continent = case_when(country == "Australia" ~"Oceania",
+                               country %in% c("Belarus","Denmark","France","Germany","Ireland","Portugal","Russian Federation","Sweden", "United Kingdom of Great Britain and Northen Ireland") ~ "Europe",
+                               country %in% c("Brazil","Canada","Chile","Colombia","Mexico","Panama","Peru","United States of America")~"America",
+                               country %in% c("China","Hong Kong (S.A.R.)","Japan","Singapore") ~ "Asia",
+                               TRUE~"Not specified")) %>%
+dummy_cols(select_columns = "gender", ignore_na = T) %>%
+  dummy_cols(select_columns = "continent", ignore_na = T)=
+lm1<- clean_names(lm1) %>%
+  filter(!is.na(gender)) %>%
+  filter(!is.na(continent))
 
-lm1<- clean_names(lm1)
+#boxplots to visually demonstrate changes by gender and continent
+ggplot(lm1, aes(x=gender, y=internet_usage))+
+  geom_boxplot(na.rm=T)
 
+ggplot(lm1, aes(x=continent, y=internet_usage))+
+  geom_boxplot(na.rm=T)
+
+
+#Does not converge when adding multiple genders. Being female does not explain variance
 i1<- glm(internet_usage~ gender_female, data=lm1, family="binomial")
+i1m <- glm(internet_usage~ gender_male, data=lm1, family="binomial")
+
+#Living in america marginal effect?
+i2<- glm(internet_usage ~ continent_america, data=lm1, family = "binomial")
+i2e<-  glm(internet_usage ~ continent_europe, data=lm1, family = "binomial")
+i2as <- glm(internet_usage ~ continent_asia, data=lm1, family = "binomial")
 
 summary(i1)
+summary(i1m)
+summary(i2)
+summary(i2e)
+summary(i2as)
 
-#I can run one model per gender , but running one per country would be too much no? Maybe we can also cluster the countries into a binary western-non western variable?? instead of a thousand dummy coded variables lol
+
+#correlation matrix?
+
+cor<- lm1 %>%
+  select(internet_usage, importance_concrete_advice, importance_free, importance_easy_to_access, importance_understandable, importance_engaging, importance_edi, importance_fun, importance_reliable, importance_social_media, importance_evidence_based, importance_unpretentious, importance_other, importance_respectful, importance_unbiased) 
+
+cor<- as.data.frame(lapply(cor, as.numeric))
+
+head(cor)
+
+mat<- cor(cor, method="pearson", use="complete.obs")
+
+res_corr <- as.data.frame(round(mat,2)) #this data frame has a correlation matrix
+
+
+
+
+
 ```
 
 2. Linear regression
