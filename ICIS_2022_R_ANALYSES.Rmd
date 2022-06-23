@@ -98,11 +98,11 @@ careg_table<- careg_table %>%
   mutate(percentage = (Freq/160)*100)%>%
   mutate("respondent was a parent" = Var1)
 
-careg_plot <- ggplot(careg_table, aes(x="", y=percentage, fill=`respondent was a parent`))+
-geom_bar(width = 1, stat = "identity") + geom_text(aes(label = percentage),
+careg_plot <- ggplot(careg_table, aes(x="", y= percentage, fill=`respondent was a parent`))+
+geom_bar(width = 1, stat = "identity") + geom_text(aes(label = paste0(percentage, "%")),
             position = position_stack(vjust = 0.5))+
   labs(y="percentage of caregiver who were parents", x="")+
-  scale_fill_manual(values=c("#e7a8a6", "#a7eb96"))+
+  scale_fill_manual(values=c("#ff9bb4", "#a7eb96"))+
   theme_bw()
 
 careg_plot
@@ -145,10 +145,12 @@ evidence_table <- evidence_table %>%
 
 evi_plot <- ggplot(evidence_table, aes(x="", y=percentage, fill=helpfulness_level))+
 geom_bar(width = 1, stat = "identity") +
-  geom_text(aes(label = percentage),
+  geom_text(aes(label = paste0(percentage, "%")),
             position = position_stack(vjust = 0.5))+
   labs(y="percentage evidence based helpfulness", x="")+  
-  scale_fill_manual(values=c("#e7a8a6", "#a7eb96", "#ffb078"))+
+  scale_fill_manual(values=c("#a7eb96",
+"#c9b2daff",
+"#ff9bb4"))+
   theme_bw()
 
 evi_plot
@@ -163,10 +165,12 @@ evi_pie
 evi_plot_col <- ggplot(evidence_table, aes(x=helpfulness_level, y=percentage, fill=helpfulness_level))+
 geom_col() +
   labs(y="percentage evidence based helpfulness", x="")+
-  geom_text(aes(label = percentage),
+  geom_text(aes(label = paste0(percentage, "%")),
             position = position_stack(vjust = 0.5))+
   labs(y="percentage evidence based helpfulness", x="")+  
-  scale_fill_manual(values=c("#e7a8a6", "#a7eb96", "#ffb078"))+
+  scale_fill_manual(values=c("#a7eb96",
+"#c9b2daff",
+"#ff9bb4"))+
   theme_bw()
 
 evi_plot_col
@@ -188,10 +192,17 @@ internet_table <- internet_table %>%
 
 internet_plot <- ggplot(internet_table, aes(x="", y=percentage, fill=internet_search_frequency))+
 geom_bar(width = 1, stat = "identity") +
-  geom_text(aes(label = percentage),
+  geom_text(aes(label = paste0(percentage, "%")),
             position = position_stack(vjust = 0.5))+
   labs(y="percentage internet search freq", x="")+
-  scale_fill_manual(values=c("#e7a8a6", "#a7eb96", "#ffb078","#b8cfec", "#b795d1"))+
+  scale_fill_manual(values=c("#a7eb96",
+"#c9b2daff",
+"#ff9bb4",
+"#ffc297",
+"#f0aae5ff",
+"#fff3b6",
+"#a7ffd3ff",
+"#a4d5eb"))+
   theme_bw()
 
 internet_plot
@@ -300,7 +311,7 @@ scale_fill_manual(values =c("#a7eb96",
 "#fff3b6",
 "#a7ffd3ff",
 "#a4d5eb"))+
-    geom_text(aes(label = percentage),
+    geom_text(aes(label = paste0(percentage, "%")),
             position = position_stack(vjust = 0.5))+
   labs(y="percentage votes", x="")+
   theme_bw()
@@ -330,7 +341,7 @@ particip_table<- particip_table %>%
   mutate("participate_in_science" = Var1)
 
 careg_plot <- ggplot(particip_table, aes(x="", y=percentage, fill=`participate_in_science`))+
-geom_bar(width = 1, stat = "identity") + geom_text(aes(label = percentage),
+geom_bar(width = 1, stat = "identity") + geom_text(aes(label = paste0(percentage, "%")),
             position = position_stack(vjust = 0.5))+
   labs(y="percentage of votes", x="")+
   scale_fill_manual(values=c("#a7eb96",
@@ -414,17 +425,7 @@ res_corr <- as.data.frame(round(mat,2)) #this data frame has a correlation matri
 
 ```
 
-2. Linear regression
 
-```{r}
-#internet search correlated with most important factor. I think we need a boxplot first.
-
-#how_often_internet ~ importance. What is the intercept here?? I'm a bit confused about the predictor because we have them as separate columns per topic. Is each topics importance a predictor? Not sure that will converge. Do we make a model for each topic? Or do we somehow make a summary column about the mean importance and use that as a predictor?
-
-#Correlation matrix splom function? 
-
-
-```
 
 
 ```
