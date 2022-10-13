@@ -19,26 +19,26 @@ library(stringr)
 
 Read in data
 ```{r}
-x_2022_june_qualtrics_data <- read_excel("2022_june_qualtrics_data.xlsx", col_names=c("start_date", "end_date", "status", "progress", "duration_s", "finished", "recorded_date", "response_id","distribution_channel", "user_language", "recaptcha_score","consent", "year_birth", "gender","country", "caregiver_type","visit_kotoboo", "how_helpful_evidence_based", "how_often_internet","which_topics_interest","importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other","importance_other_text", "participate_in_science", "comic_ideas", "comic_ideas_text", "sc0_score", "language", "q_language"))
+x_2022_september_qualtrics_data <- read_excel("2022_september_qualtrics_data.xlsx", col_names=c("start_date", "end_date", "response_type", "progress", "duration_s", "finished", "recorded_date", "response_id","distribution_channel", "user_language", "recaptcha_score","consent", "year_birth", "gender","country", "not_caregiver", "is_parent","is_teacher","is_grandparent", "is_babysitter","is_aunt_uncle","is_sibling","is_therapist", "is_neighbour","is_family_friend", "is_other","visit_kotoboo", "how_helpful_evidence_based", "how_often_internet","which_topics_bilingualism","which_topics_screen_time","which_topics_lang_diversity","which_topics_sign_langauge","which_topics_foster_language","which_topics_reading_writing","which_topics_langauge_dev_disorders","which_topics_mythbusters","importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other","importance_other_text", "participate_in_science", "comic_ideas", "comic_ideas_text", "sc0_score", "language", "q_language"))
 
-x_2022_june_qualtrics_data<- x_2022_june_qualtrics_data [-c(1,2,3,4),]
+x_2022_september_qualtrics_data<- x_2022_september_qualtrics_data [-c(1,2,3,4),]
 ```
 
 
 Exclude data
 ```{r}
-x_2022_june_qualtrics_data<- x_2022_june_qualtrics_data %>%
+x_2022_september_qualtrics_data<- x_2022_september_qualtrics_data %>%
   filter(year_birth <=2004) %>%
   filter(year_birth >=1922) %>%
   filter(consent=="I consent") 
 
 #completion range
 
-range(as.numeric(x_2022_june_qualtrics_data$progress)) #31-100 completed
+range(as.numeric(x_2022_september_qualtrics_data$progress)) #31-100 completed
 ```
 ##completion rate stats
 ```{r}
-average_pop <- x_2022_june_qualtrics_data %>%
+average_pop <- x_2022_september_qualtrics_data %>%
   select(progress)%>%
   filter(progress!="100") 
 #average progress
@@ -47,9 +47,9 @@ mean(as.numeric(average_pop$progress))
 table(average_pop$progress)
 
 #average time spent in survey (take median as the better measure)
-mean(as.numeric(x_2022_june_qualtrics_data$duration_s))
-median(as.numeric(x_2022_june_qualtrics_data$duration_s))
-table(x_2022_june_qualtrics_data$duration_s)
+mean(as.numeric(x_2022_september_qualtrics_data$duration_s))
+median(as.numeric(x_2022_september_qualtrics_data$duration_s))
+table(x_2022_september_qualtrics_data$duration_s)
 ```
 
 
@@ -58,17 +58,17 @@ Get demographic info
 
 
 #Age range
-x_2022_june_qualtrics_data <- x_2022_june_qualtrics_data %>%
+x_2022_september_qualtrics_data <- x_2022_september_qualtrics_data %>%
   mutate(survey_year = 2022) %>%
   mutate(age = survey_year - as.numeric(year_birth))
 
-range(x_2022_june_qualtrics_data$age) #19-63 years
-mean(x_2022_june_qualtrics_data$age) #35.58 years
+range(x_2022_september_qualtrics_data$age) #19-63 years
+mean(x_2022_september_qualtrics_data$age) #35.64 years
 
 #Gender
-sum(x_2022_june_qualtrics_data$gender=="Female", na.rm = T) #123 female
-sum(x_2022_june_qualtrics_data$gender=="Male", na.rm = T)  # 32 male
-sum(x_2022_june_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #4 
+sum(x_2022_september_qualtrics_data$gender=="Female", na.rm = T) #126 female
+sum(x_2022_september_qualtrics_data$gender=="Male", na.rm = T)  # 31 male
+sum(x_2022_september_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #4 
 #NA = 1
 
 
@@ -78,7 +78,8 @@ sum(x_2022_june_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #4
 3. By country info
 ```{r}
 
-country_table<- as.data.frame(table(x_2022_june_qualtrics_data$country))
+country_table<- as.data.frame(table(x_2022_september_qualtrics_data$country))
+print(country_table)
 
 #I will make a png map with this info
 ```
@@ -87,10 +88,35 @@ country_table<- as.data.frame(table(x_2022_june_qualtrics_data$country))
 4. Caregiver info
 ```{r}
 #A. Percentage of caregivers
-careg<- x_2022_june_qualtrics_data %>%
-  select(caregiver_type) %>%
-  mutate(parent = case_when(str_detect(caregiver_type, "Parent")==TRUE ~"TRUE",
-                            TRUE~"FALSE"))
+careg<- x_2022_september_qualtrics_data %>%
+  select(c(not_caregiver, is_parent, is_teacher, is_grandparent, is_babysitter, is_aunt_uncle,
+           is_sibling, is_therapist, is_neighbour, is_family_friend, is_other))  %>%
+  mutate(not_caregiver = case_when(not_caregiver == "I am not a caregiver" ~ "T",
+                                   TRUE~"F")) %>%
+    mutate(is_parent = case_when(is_parent == "Parent" ~ "T",
+                                   TRUE~"F")) %>%
+    mutate(is_teacher = case_when(is_teacher == "Teacher/Educator" ~ "T",
+                                   TRUE~"F")) %>%
+      mutate(is_grandparent = case_when(is_grandparent == "Grandparent" ~ "T",
+                                   TRUE~"F")) %>%
+        mutate(is_babysitter = case_when(is_babysitter == "Nanny/Babysitter" ~ "T",
+                                   TRUE~"F")) %>%
+        mutate(is_aunt_uncle = case_when(is_aunt_uncle == "Uncle/Aunt" ~ "T",
+                                   TRUE~"F"))%>%
+        mutate(is_sibling = case_when(is_sibling == "Sibling" ~ "T",
+                                   TRUE~"F")) %>%
+        mutate(is_therapist = case_when(is_therapist == "Therapist" ~ "T",
+                                   TRUE~"F")) %>%
+        mutate(is_neighbour = case_when(is_neighbour == "Neighbour" ~ "T",
+                                   TRUE~"F")) %>%
+        mutate(is_family_friend = case_when(is_family_friend == "Family friend" ~ "T",
+                                   TRUE~"F")) %>%
+          mutate(is_other = case_when(is_other == "Other" ~ "T",
+                                   TRUE~"F")) %>%
+  count(not_caregiver, is_parent, is_teacher, is_grandparent, is_babysitter, is_aunt_uncle,
+           is_sibling, is_therapist, is_neighbour, is_family_friend, is_other, sort=T)
+
+#Change below as with new data shape a graph does not make sense
 
 careg_table<- as.data.frame(table(careg$parent)) 
 
