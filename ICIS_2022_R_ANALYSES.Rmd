@@ -27,10 +27,12 @@ x_2022_september_qualtrics_data<- x_2022_september_qualtrics_data [-c(1,2,3,4),]
 
 Exclude data
 ```{r}
+#203
 x_2022_september_qualtrics_data<- x_2022_september_qualtrics_data %>%
-  filter(year_birth <=2004) %>%
-  filter(year_birth >=1922) %>%
-  filter(consent=="I consent") 
+  filter(year_birth <=2004) %>% #164 39 excluded
+  filter(year_birth >=1922) %>% #2 more excluded
+  filter(recaptcha_score >=.80) %>% #1 more excluded
+  filter(consent=="I consent") #1 more excluded
 
 #completion range
 
@@ -118,6 +120,11 @@ careg<- x_2022_september_qualtrics_data %>%
 
 
 
+only_parents <- careg %>%
+  select(is_parent, n) %>%
+  filter (is_parent == "T") 
+
+sum(only_parents$n)
 ```
 
 5. Kotoboo visits
