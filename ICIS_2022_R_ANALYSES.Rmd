@@ -116,34 +116,13 @@ careg<- x_2022_september_qualtrics_data %>%
   count(not_caregiver, is_parent, is_teacher, is_grandparent, is_babysitter, is_aunt_uncle,
            is_sibling, is_therapist, is_neighbour, is_family_friend, is_other, sort=T)
 
-#Change below as with new data shape a graph does not make sense
 
-careg_table<- as.data.frame(table(careg$parent)) 
-
-careg_table<- careg_table %>%
-  mutate(percentage = (Freq/160)*100)%>%
-  mutate("respondent was a parent" = Var1)
-
-careg_plot <- ggplot(careg_table, aes(x="", y= percentage, fill=`respondent was a parent`))+
-geom_bar(width = 1, stat = "identity") + geom_text(aes(label = paste0(percentage, "%")),
-            position = position_stack(vjust = 0.5))+
-  labs(y="percentage of caregiver who were parents", x="")+
-  scale_fill_manual(values=c("#ff9bb4", "#a7eb96"))+
-  theme_bw()
-
-careg_plot
-
-careg_pie<- careg_plot + coord_polar("y", start=0) + theme_void()
-
-careg_pie
-
-#I went a bit simpler here because making the other caregiver distinctions its going to be a lot of work, specially for a poster.
 
 ```
 
 5. Kotoboo visits
 ```{r}
-visits<- x_2022_june_qualtrics_data %>%
+visits<- x_2022_september_qualtrics_data %>%
   select(visit_kotoboo)
 
 visits_table<- as.data.frame(table(visits$visit_kotoboo)) 
@@ -151,13 +130,12 @@ visits_table<- as.data.frame(table(visits$visit_kotoboo))
 visits_table<- visits_table %>%
   mutate(percentage = (Freq/160)*100)
 ```
-Highest visits category = Never 56%. Then sometimes 10%. This means that out of the people who do visit the site they only look for some comics, or only visit sporadically. Pretty normal. 
 
 
 6. Evidence based information
 ```{r}
 #I have made 3 types of graphs so you can pick whatever suits better the poster
-evidence <- x_2022_june_qualtrics_data %>%
+evidence <- x_2022_september_qualtrics_data %>%
   select(how_helpful_evidence_based)
 
 evidence_table<- as.data.frame(table(evidence$how_helpful_evidence_based)) 
@@ -206,7 +184,7 @@ evi_plot_col
 
 ```{r}
 
-internet <- x_2022_june_qualtrics_data %>%
+internet <- x_2022_september_qualtrics_data %>%
   select(how_often_internet)
 
 internet_table<- as.data.frame(table(internet$how_often_internet)) 
@@ -246,7 +224,7 @@ internet_pie
 
 8. Calculate the mean importance of each topic
 ```{r}
-mean_importance <- x_2022_june_qualtrics_data %>%
+mean_importance <- x_2022_september_qualtrics_data %>%
   select(c("importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other"))%>%
   pivot_longer(cols=c("importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other"),names_to = "characteristic", values_to= "rating")%>%
   group_by(characteristic)%>% 
@@ -296,7 +274,7 @@ ggplot(plot, aes(y=characteristic, x=mean)) +
 
 9. calculate the proportion of topics considered to be most interesting by parents. 
 ```{r}
-by_topic <- x_2022_june_qualtrics_data %>%
+by_topic <- x_2022_september_qualtrics_data %>%
   select(which_topics_interest)%>%
   drop_na() %>%
 mutate ("language learning in bilingual and multilingual contexts" = case_when(str_detect(which_topics_interest,"Language learning in bilingual and multilingual contexts") ~ "1", TRUE ~ "0")) %>%
