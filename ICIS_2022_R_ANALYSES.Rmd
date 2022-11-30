@@ -639,12 +639,13 @@ plot_feature_top3_bottom3 <- data_feature %>%
              y = prop, 
              fill = factor(rating, levels = c("1", "2", "3", "others", "12", "13", "14", "NA")))) +
   geom_bar(position="stack", stat="identity") +
-  theme_minimal() +
-  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ffffbf", "#6baed6", "#3182bd", "#08519c", "#cccccc")) +
+  theme_minimal(base_size = 20) +
+  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ffffff", "#6baed6", "#3182bd", "#08519c", "#cccccc")) +
   coord_flip() +
   labs(x = "Feature",
        y = "Proportion of participants",
-       fill = "Importance rating")
+       fill = "Importance rating") 
+  
 
 
 
