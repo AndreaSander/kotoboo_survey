@@ -86,8 +86,30 @@ print(country_table)
 #I will make a png map with this info
 ```
 
+4. Helpfulness mode and mean
+```{r}
+count_helpfulness <- x_2022_september_qualtrics_data %>%
+  group_by(how_helpful_evidence_based) %>%
+  count(how_helpful_evidence_based)
+```
 
-4. Caregiver info
+
+5. Internet search mode and mean
+```{r}
+count_internet <- x_2022_september_qualtrics_data %>%
+  group_by(how_often_internet) %>%
+  count(how_often_internet)
+```
+
+6. Comics and participation mode and mean
+```{r}
+count_participation<- x_2022_september_qualtrics_data %>%
+  group_by(participate_in_science) %>%
+  count(participate_in_science)
+```
+
+
+7. Caregiver info
 ```{r}
 #A. Percentage of caregivers
 careg<- x_2022_september_qualtrics_data %>%
@@ -127,7 +149,7 @@ only_parents <- careg %>%
 sum(only_parents$n)
 ```
 
-5. Kotoboo visits
+8. Kotoboo visits
 ```{r}
 visits<- x_2022_september_qualtrics_data %>%
   select(visit_kotoboo)
@@ -139,7 +161,50 @@ visits_table<- visits_table %>%
 ```
 
 
-6. Evidence based information
+9. Topic popularity
+```{r}
+
+
+by_topic <- x_2022_september_qualtrics_data %>%
+  select(c(which_topics_bilingualism, which_topics_screen_time, which_topics_lang_diversity, which_topics_sign_langauge, which_topics_foster_language, which_topics_reading_writing, which_topics_langauge_dev_disorders, which_topics_mythbusters))%>%
+  
+  replace_na(list (which_topics_bilingualism = "0")) %>%
+   replace_na(list (which_topics_screen_time = "0")) %>%
+  replace_na(list (which_topics_lang_diversity = "0")) %>%
+  replace_na(list (which_topics_sign_langauge = "0")) %>%
+  replace_na(list (which_topics_foster_language ="0")) %>%
+    replace_na(list (which_topics_reading_writing = "0")) %>%
+  replace_na(list(which_topics_langauge_dev_disorders ="0")) %>%
+  replace_na(list(which_topics_mythbusters ="0")) %>%
+  
+  mutate(which_topics_bilingualism = case_when( which_topics_bilingualism=="0" ~ 0,
+                                              TRUE ~1)) %>%
+    mutate(which_topics_screen_time = case_when( which_topics_screen_time=="0" ~ 0,
+                                              TRUE ~1)) %>%
+      mutate(which_topics_lang_diversity = case_when( which_topics_lang_diversity=="0" ~ 0,
+                                              TRUE ~1)) %>%
+      mutate(which_topics_sign_langauge = case_when( which_topics_sign_langauge =="0" ~ 0,
+                                              TRUE ~1)) %>%
+      mutate(which_topics_foster_language = case_when(which_topics_foster_language=="0" ~ 0,
+                                              TRUE ~1)) %>%
+      mutate(which_topics_reading_writing = case_when( which_topics_reading_writing=="0" ~ 0,
+                                              TRUE ~1)) %>%
+      mutate(which_topics_langauge_dev_disorders= case_when( which_topics_langauge_dev_disorders=="0" ~ 0,
+                                              TRUE ~1)) %>%
+      mutate(which_topics_mythbusters = case_when( which_topics_mythbusters=="0" ~ 0,
+                                              TRUE ~1)) 
+
+topic_sums<- as.data.frame(colSums(by_topic))
+
+
+  
+
+```
+
+
+
+#------------ PLOTS--------------------
+Evidence based information
 ```{r}
 #I have made 3 types of graphs so you can pick whatever suits better the poster
 evidence <- x_2022_september_qualtrics_data %>%
@@ -187,7 +252,7 @@ geom_col() +
 evi_plot_col
 
 ```
-7. Internet search frequency
+Internet search frequency
 
 ```{r}
 
@@ -229,7 +294,7 @@ internet_pie
 
 
 
-8. Calculate the mean importance of each topic
+Calculate the mean importance of each topic
 ```{r}
 mean_importance <- x_2022_september_qualtrics_data %>%
   select(c("importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other"))%>%
@@ -279,7 +344,7 @@ ggplot(plot, aes(y=characteristic, x=mean)) +
 
 
 
-9. calculate the proportion of topics considered to be most interesting by parents. 
+calculate the proportion of topics considered to be most interesting by parents. 
 ```{r}
 by_topic <- x_2022_september_qualtrics_data %>%
   select(which_topics_interest)%>%
@@ -338,7 +403,7 @@ pie
 ```
 
 
-10. Do comics make you want to participate in studies?
+Do comics make you want to participate in studies?
 
 ```{r}
 particip<- x_2022_june_qualtrics_data %>%
