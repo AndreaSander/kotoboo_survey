@@ -41,10 +41,12 @@ range(as.numeric(x_2022_september_qualtrics_data$progress)) #31-100 completed
 ##completion rate stats
 ```{r}
 average_pop <- x_2022_september_qualtrics_data %>%
-  select(progress)%>%
-  filter(progress!="100") 
+  select(progress) #%>%
+  #filter(progress!="100") 
 #average progress
 mean(as.numeric(average_pop$progress))
+sd(as.numeric(average_pop$progress))
+range(as.numeric(average_pop$progress))
 
 table(average_pop$progress)
 
@@ -157,48 +159,87 @@ visits<- x_2022_september_qualtrics_data %>%
 visits_table<- as.data.frame(table(visits$visit_kotoboo)) 
 
 visits_table<- visits_table %>%
-  mutate(percentage = (Freq/160)*100)
+  mutate(percentage = (Freq/161)*100) %>%
+  arrange(desc(percentage))
 ```
 
 
 9. Topic popularity
 ```{r}
-
-
 by_topic <- x_2022_september_qualtrics_data %>%
-  select(c(which_topics_bilingualism, which_topics_screen_time, which_topics_lang_diversity, which_topics_sign_langauge, which_topics_foster_language, which_topics_reading_writing, which_topics_langauge_dev_disorders, which_topics_mythbusters))%>%
+  select(starts_with("which_topics")) %>%
+  rename_all(~stringr::str_replace(.,"which_topics_","")) %>%
+  mutate_all(funs(replace(., !is.na(.), 1))) %>%
+  mutate_all(funs(as.numeric))
+
+# number of topics selected per participant
+n_topics_per_participants <- by_topic %>%
+  rowwise() %>% 
+  mutate(sum = sum(c_across(where(is.numeric)), na.rm = T))
+
+mean(n_topics_per_participants$sum)
+sd(n_topics_per_participants$sum)
+range(n_topics_per_participants$sum)
+
+# frequency of topics
+topic_sums <- as.data.frame(colSums(by_topic, na.rm=T))
+
+# plot frequency of topics
+plot_topic <- by_topic %>%
+  pivot_longer(everything(), names_to = "topic", values_to = "selected") %>%
+  na.omit() %>%
+  group_by(topic) %>%
+  count() %>%
+  mutate(topic = recode(topic,
+                        bilingualism = "Language learning in bilingual environments",
+                        screen_time = "The effect of screen time on language learning",
+                        lang_diversity = "Language diversity around the world",
+                        sign_language = "Learning sign language",
+                        foster_language = "Ways to foster language learning",
+                        reading_writing = "Ways to foster reading and writing",
+                        langauge_dev_disorders = "Ways to foster language learning in \n children with developmental disorders",
+                        mythbuster = "Debunking common language learning myths")) %>%
+  ggplot(aes(x = reorder(topic, n), y = n)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(breaks = seq(0, 100, by = 10)) +
+  theme_minimal(base_size = 20) +
+  coord_flip() +
+  labs(x = "Topic",
+       y = "Number of counts") 
   
-  replace_na(list (which_topics_bilingualism = "0")) %>%
-   replace_na(list (which_topics_screen_time = "0")) %>%
-  replace_na(list (which_topics_lang_diversity = "0")) %>%
-  replace_na(list (which_topics_sign_langauge = "0")) %>%
-  replace_na(list (which_topics_foster_language ="0")) %>%
-    replace_na(list (which_topics_reading_writing = "0")) %>%
-  replace_na(list(which_topics_langauge_dev_disorders ="0")) %>%
-  replace_na(list(which_topics_mythbusters ="0")) %>%
-  
-  mutate(which_topics_bilingualism = case_when( which_topics_bilingualism=="0" ~ 0,
-                                              TRUE ~1)) %>%
-    mutate(which_topics_screen_time = case_when( which_topics_screen_time=="0" ~ 0,
-                                              TRUE ~1)) %>%
-      mutate(which_topics_lang_diversity = case_when( which_topics_lang_diversity=="0" ~ 0,
-                                              TRUE ~1)) %>%
-      mutate(which_topics_sign_langauge = case_when( which_topics_sign_langauge =="0" ~ 0,
-                                              TRUE ~1)) %>%
-      mutate(which_topics_foster_language = case_when(which_topics_foster_language=="0" ~ 0,
-                                              TRUE ~1)) %>%
-      mutate(which_topics_reading_writing = case_when( which_topics_reading_writing=="0" ~ 0,
-                                              TRUE ~1)) %>%
-      mutate(which_topics_langauge_dev_disorders= case_when( which_topics_langauge_dev_disorders=="0" ~ 0,
-                                              TRUE ~1)) %>%
-      mutate(which_topics_mythbusters = case_when( which_topics_mythbusters=="0" ~ 0,
-                                              TRUE ~1)) 
+plot_topic
 
-topic_sums<- as.data.frame(colSums(by_topic))
+ggsave("plot_topic.jpg", plot_topic,
+       width = 12,
+       height = 8)
 
 
-  
-
+#by_topic <- x_2022_september_qualtrics_data %>%
+#  select(c(which_topics_bilingualism, which_topics_screen_time, which_topics_lang_diversity, which_topics_sign_langauge, which_topics_foster_language, which_topics_reading_writing, which_topics_langauge_dev_disorders, which_topics_mythbusters))%>%
+#  replace_na(list (which_topics_bilingualism = "0")) %>%
+#  replace_na(list (which_topics_screen_time = "0")) %>%
+#  replace_na(list (which_topics_lang_diversity = "0")) %>%
+#  replace_na(list (which_topics_sign_langauge = "0")) %>%
+#  replace_na(list (which_topics_foster_language ="0")) %>%
+#  replace_na(list (which_topics_reading_writing = "0")) %>%
+#  replace_na(list(which_topics_langauge_dev_disorders ="0")) %>%
+#  replace_na(list(which_topics_mythbusters ="0")) %>%
+#  mutate(which_topics_bilingualism = case_when( which_topics_bilingualism=="0" ~ 0,
+#                                              TRUE ~1)) %>%
+#    mutate(which_topics_screen_time = case_when( which_topics_screen_time=="0" ~ 0,
+#                                              TRUE ~1)) %>%
+#      mutate(which_topics_lang_diversity = case_when( which_topics_lang_diversity=="0" ~ 0,
+#                                              TRUE ~1)) %>%
+#      mutate(which_topics_sign_langauge = case_when( which_topics_sign_langauge =="0" ~ 0,
+#                                              TRUE ~1)) %>%
+#      mutate(which_topics_foster_language = case_when(which_topics_foster_language=="0" ~ 0,
+#                                              TRUE ~1)) %>%
+#      mutate(which_topics_reading_writing = case_when( which_topics_reading_writing=="0" ~ 0,
+#                                              TRUE ~1)) %>%
+#      mutate(which_topics_langauge_dev_disorders= case_when( which_topics_langauge_dev_disorders=="0" ~ 0,
+#                                              TRUE ~1)) %>%
+#      mutate(which_topics_mythbusters = case_when( which_topics_mythbusters=="0" ~ 0,
+#                                              TRUE ~1)) 
 ```
 
 
@@ -303,20 +344,20 @@ mean_importance <- x_2022_september_qualtrics_data %>%
   mutate(rating = as.numeric(as.character(rating)))
 
 mean_importance <- mean_importance %>%
-  mutate(characteristic = case_when(characteristic == "importance_concrete_advice" ~ "gives concrete advice",
-                                    characteristic == "importance_free" ~ "the content is free",
-                                    characteristic == "importance_easy_to_access" ~ "it's easy to access",
-                                    characteristic == "importance_understandable" ~ "content is understandable",
-                                    characteristic == "importance_engaging" ~ "content is engaging",
-                                    characteristic == "importance_EDI" ~ "fosters equity, diversity and inclusion",
-                                    characteristic == "importance_social_media" ~ "shareable in social media",
-                                    characteristic == "importance_reliable" ~ "the information is reliable",
-                                    characteristic == "importance_evidence_based" ~ "the content is evidence based",
-                                    characteristic == "importance_unpretentious" ~ "the content is unpretentious",
-                                    characteristic == "importance_respectful" ~ "the content is respectful",
-                                    characteristic == "importance_fun" ~ "the content is fun",
-                                    characteristic == "importance_unbiased" ~ "the content is unbiased",
-                                    characteristic == "importance_other" ~ "other reason not listed"))
+  mutate(characteristic = case_when(characteristic == "importance_concrete_advice" ~ "Concrete advice",
+                                    characteristic == "importance_free" ~ "Free",
+                                    characteristic == "importance_easy_to_access" ~ "Easy to access",
+                                    characteristic == "importance_understandable" ~ "Understandable",
+                                    characteristic == "importance_engaging" ~ "Engaging",
+                                    characteristic == "importance_EDI" ~ "Diverse and inclusive",
+                                    characteristic == "importance_social_media" ~ "Linked to social media",
+                                    characteristic == "importance_reliable" ~ "Reliable",
+                                    characteristic == "importance_evidence_based" ~ "Evidence-based",
+                                    characteristic == "importance_unpretentious" ~ "Unpretentious",
+                                    characteristic == "importance_respectful" ~ "Respectful",
+                                    characteristic == "importance_fun" ~ "Fun",
+                                    characteristic == "importance_unbiased" ~ "Unbiased",
+                                    characteristic == "importance_other" ~ "Other reason not listed"))
 
 
 plot<- mean_importance %>%
@@ -334,12 +375,7 @@ ggplot(plot, aes(y=characteristic, x=mean)) +
   xlim(1, 14) + 
   annotate("text", y=1, x=3, label="most important <-", color="red") +
   annotate("text", y=1, x=10, label="least important ->", color ="red")
-  
 
-
-
-
- 
 ```
 
 
@@ -521,19 +557,19 @@ data_feature <- x_2022_september_qualtrics_data %>%
          rating = as.numeric(rating)) %>%
   ## recode feature levels
   mutate(feature = recode(feature,
-                          "importance_concrete_advice" = "gives concrete advice",
-                          "importance_free" = "the content is free",
-                          "importance_easy_to_access" = "it's easy to access",
-                          "importance_understandable" = "content is understandable",
-                          "importance_engaging" = "content is engaging",
-                          "importance_EDI" = "fosters equity, diversity and inclusion",
-                          "importance_social_media" = "shareable in social media",
-                          "importance_reliable" = "the information is reliable",
-                          "importance_evidence_based" = "the content is evidence based",
-                          "importance_unpretentious" = "the content is unpretentious",
-                          "importance_respectful" = "the content is respectful",
-                          "importance_fun" = "the content is fun",
-                          "importance_unbiased" = "the content is unbiased"))
+                          "importance_concrete_advice" = "Concrete advice",
+                          "importance_free" = "Free",
+                          "importance_easy_to_access" = "Easy to access",
+                          "importance_understandable" = "Understandable",
+                          "importance_engaging" = "Engaging",
+                          "importance_EDI" = "Diverse and inclusive",
+                          "importance_social_media" = "Linked to social media",
+                          "importance_reliable" = "Reliable",
+                          "importance_evidence_based" = "Evidence-based",
+                          "importance_unpretentious" = "Unpretentious",
+                          "importance_respectful" = "Respectful",
+                          "importance_fun" = "Fun",
+                          "importance_unbiased" = "Unbiased"))
 
 # calculate mean rating per features 
 mean_feature_rating <- data_feature %>%
@@ -551,7 +587,7 @@ mean_feature_rating <- data_feature %>%
 
 plot_mean_feature_rating <- mean_feature_rating %>%
   ggplot(aes(x = reorder(feature, -mean_rating), y = mean_rating)) +
-  geom_point(size = 5) + $
+  geom_point(size = 5) + 
   theme_minimal() +
   scale_y_continuous(limits = c(1, 14), breaks = seq(1, 14, by = 1)) +
   labs(x = "Feature",
@@ -646,8 +682,9 @@ plot_feature_top3_bottom3 <- data_feature %>%
        y = "Proportion of participants",
        fill = "Importance rating") 
   
-
-
+ggsave("plot_feature_top3_bottom3.jpg", plot_feature_top3_bottom3,
+       width = 12,
+       height = 8)
 
 # ---- kendall (for ordinal data; cannot run on individual items?) ----
 data_feature_overall <- data_feature %>%
