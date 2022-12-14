@@ -13,6 +13,7 @@ library(broom)
 library(janitor)
 library(readxl)
 library(stringr)
+library(lme4)
 
 ```
 
@@ -38,6 +39,7 @@ x_2022_september_qualtrics_data<- x_2022_september_qualtrics_data %>%
 
 range(as.numeric(x_2022_september_qualtrics_data$progress)) #31-100 completed
 ```
+
 ##completion rate stats
 ```{r}
 average_pop <- x_2022_september_qualtrics_data %>%
@@ -113,6 +115,17 @@ count_participation<- x_2022_september_qualtrics_data %>%
 
 7. Caregiver info
 ```{r}
+caregivers <- x_2022_september_qualtrics_data %>%
+  select(not_caregiver, starts_with("is_")) %>%
+  mutate_all(funs(replace(., !is.na(.), 1))) %>%
+  mutate_all(funs(as.numeric))
+
+caregivers_sums <- caregivers %>%
+  summarise_all(.funs = c(sum = "sum"), na.rm = T) %>%
+  pivot_longer(everything(), names_to = "caregiver_type", values_to = "sum") %>%
+  mutate(percentage = round(sum / 161 * 100)) %>%
+  arrange(desc(percentage))
+
 #A. Percentage of caregivers
 careg<- x_2022_september_qualtrics_data %>%
   select(c(not_caregiver, is_parent, is_teacher, is_grandparent, is_babysitter, is_aunt_uncle,
@@ -768,4 +781,49 @@ irr_feature_bottom_1 <- data_feature %>%
   irr::kappam.fleiss(.)
 
 irr_feature_bottom_1
+```
+
+
+## ----- Relationship between internet search frequency and important features rating -----
+Do people who search the internet more prefer different features from those who search it less?
+```{r}
+east <- c("China", "Hong Kong (S.A.R.)", "Japan", "Singapore", "United Arab Emirates")
+
+data_relation <- x_2022_september_qualtrics_data %>%
+  ## select relevant variables
+  select(response_id, country, how_often_internet, starts_with("importance_"), -starts_with("importance_other")) %>%
+  ## create binary variables
+  mutate(binary_country = factor(case_when(country %in% east ~ "East",
+                                 TRUE ~ "West"),
+                                 levels = c("West", "East")),
+         binary_feature = case_when(importance_evidence_based <= 5 ~ 1,
+                                    importance_reliable <= 5 ~ 1,
+                                    importance_concrete_advice <= 5 ~ 1,
+                                    TRUE ~ 0)) %>%
+  ## as.factor(how_often_internet)
+  mutate(how_often_internet = factor(how_often_internet,
+                                     levels = c("Never", 
+                                                "Rarely \r\nA few times a year", 
+                                                "Occasionally \r\nOnce a month",
+                                                "Often\r\nEvery other week",
+                                                "Frequently\r\nMore than once a week")))
+
+relation_model <- data_relation %>%
+  select(-c(country, starts_with("importance_"))) %>%
+  glm(binary_feature ~ how_often_internet * binary_country, 
+        family = binomial, 
+        data = .)
+
+broom::tidy(relation_model) %>%
+  as.data.frame %>%
+  rename(SE = `std.error`, 
+         z = `statistic`,
+         p = `p.value`) %>%
+  mutate(p = case_when(
+    p < .001 ~ "<.001",
+    p < .01 ~ "<.01",
+    p < .05 ~ "<.05",
+    TRUE ~ as.character(round(p,3)))) %>%
+  mutate_if(is.numeric, round, digits = 2)
+
 ```
