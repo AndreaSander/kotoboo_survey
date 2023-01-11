@@ -14,12 +14,19 @@ library(janitor)
 library(readxl)
 library(stringr)
 library(lme4)
-library(tidylog)
+library(ggplot2)
+#library(tidylog)
 
+#function for finding mode
+find_mode <- function(x) {
+     u <- unique(x)
+     tab <- tabulate(match(x, u))
+     u[tab == max(tab)]
+}
 ```
 
 
-Read in data
+# read in data
 ```{r}
 x_2022_september_qualtrics_data <- read_excel("2022_september_qualtrics_data.xlsx", col_names=c("start_date", "end_date", "response_type", "progress", "duration_s", "finished", "recorded_date", "response_id","distribution_channel", "user_language", "recaptcha_score","consent", "year_birth", "gender","country", "not_caregiver", "is_parent","is_teacher","is_grandparent", "is_babysitter","is_aunt_uncle","is_sibling","is_therapist", "is_neighbour","is_family_friend", "is_other","visit_kotoboo", "how_helpful_evidence_based", "how_often_internet","which_topics_bilingualism","which_topics_screen_time","which_topics_lang_diversity","which_topics_sign_langauge","which_topics_foster_language","which_topics_reading_writing","which_topics_langauge_dev_disorders","which_topics_mythbusters","importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other","importance_other_text", "participate_in_science", "comic_ideas", "comic_ideas_text", "sc0_score", "language", "q_language"))
 
@@ -27,7 +34,7 @@ x_2022_september_qualtrics_data<- x_2022_september_qualtrics_data [-c(1,2,3,4),]
 ```
 
 
-Exclude data
+# exclude data
 ```{r}
 #203 (n of pre-exclusion)
 x_2022_september_qualtrics_data <- x_2022_september_qualtrics_data %>%
@@ -146,7 +153,7 @@ caregivers <- x_2022_september_qualtrics_data %>%
 caregivers_sums <- caregivers %>%
   summarise_all(.funs = c(sum = "sum"), na.rm = T) %>%
   pivot_longer(everything(), names_to = "caregiver_type", values_to = "sum") %>%
-  mutate(percentage = round(sum / nrow(caregivers) * 100)) %>%
+  mutate(percentage = round(sum / nrow(x_2022_september_qualtrics_data) * 100)) %>%
   arrange(desc(percentage))
 
 #A. Percentage of caregivers
@@ -186,32 +193,7 @@ sum(only_parents$n)
 ```
 
 # main questions (Q5 onwards)
-## 5. 
-
-4. Helpfulness mode and mean
-```{r}
-count_helpfulness <- x_2022_september_qualtrics_data %>%
-  group_by(how_helpful_evidence_based) %>%
-  count(how_helpful_evidence_based)
-```
-
-
-5. Internet search mode and mean
-```{r}
-count_internet <- x_2022_september_qualtrics_data %>%
-  group_by(how_often_internet) %>%
-  count(how_often_internet)
-```
-
-6. Comics and participation mode and mean
-```{r}
-count_participation<- x_2022_september_qualtrics_data %>%
-  group_by(participate_in_science) %>%
-  count(participate_in_science)
-```
-
-
-8. Kotoboo visits
+## 5. kotoboo visit 
 ```{r}
 visits<- x_2022_september_qualtrics_data %>%
   select(visit_kotoboo)
@@ -225,8 +207,120 @@ visits_table<- visits_table %>%
 visits_table
 ```
 
+## 6. Helpfulness mode and mean
+```{r}
+count_helpfulness <- x_2022_september_qualtrics_data %>%
+  group_by(how_helpful_evidence_based) %>%
+  count(how_helpful_evidence_based)
 
-9. Topic popularity
+count_helpfulness
+
+# mode
+find_mode(x_2022_september_qualtrics_data$how_helpful_evidence_based)
+
+# mean
+helpfulness <- x_2022_september_qualtrics_data %>%
+  mutate(helpfulness_numeric = case_when(
+    str_detect(how_helpful_evidence_based, "Not at all") ~ 1,
+    str_detect(how_helpful_evidence_based, "Somewhat") ~ 2,
+    str_detect(how_helpful_evidence_based, "Very helpful") ~ 3,
+    TRUE ~ NA_real_))
+
+mean(helpfulness$helpfulness_numeric, na.rm=T)
+
+# plot (n = 145)
+plot_helpfulness <- count_helpfulness %>%
+  # calculate percent
+  mutate(n_helpfulness = nrow(x_2022_september_qualtrics_data) - count_helpfulness$n[is.na(count_helpfulness$how_helpful_evidence_based)],
+    Percentage = n/n_helpfulness) %>%
+  # remove NAs
+  filter(!is.na(how_helpful_evidence_based)) %>%
+  # rename items
+  mutate(how_helpful_evidence_based = case_when(
+    str_detect(how_helpful_evidence_based, "Not at all") ~ "Not at all helpful",
+    str_detect(how_helpful_evidence_based, "Somewhat") ~ "Somewhat helpful",
+    str_detect(how_helpful_evidence_based, "Very helpful") ~ "Very helpful")) %>%
+  ggplot() + 
+  geom_bar(aes(x = factor(0), y = Percentage, 
+               fill = factor(how_helpful_evidence_based, 
+                             levels = c("Very helpful", "Somewhat helpful", "Not at all helpful"))), 
+               position="stack", stat="identity") +
+  coord_flip() + 
+  scale_fill_manual(values = c("#e31a1c", "#d9d9d9", "#3182bd")) +
+  theme_minimal(base_size = 20) +
+  theme(legend.position="bottom",
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +
+  guides(fill=guide_legend(title="Helpfulness", reverse = TRUE))
+
+plot_helpfulness 
+
+ggsave("plot_helpfulness.jpg", plot_helpfulness,
+       width = 12,
+       height = 4)
+
+```
+
+## 7. Internet search mode and mean
+```{r}
+count_internet <- x_2022_september_qualtrics_data %>%
+  group_by(how_often_internet) %>%
+  count(how_often_internet)
+
+count_internet
+
+# mode
+find_mode(x_2022_september_qualtrics_data$how_often_internet)
+
+# mean
+internet_freq <- x_2022_september_qualtrics_data %>%
+  mutate(internet_freq_numeric = case_when(
+    str_detect(how_often_internet, "Never") ~ 1,
+    str_detect(how_often_internet, "Rarely") ~ 2,
+    str_detect(how_often_internet, "Occasionally") ~ 3,
+    str_detect(how_often_internet, "Often") ~ 4,
+    str_detect(how_often_internet, "Frequently") ~ 5,
+    TRUE ~ NA_real_))
+
+mean(internet_freq$internet_freq_numeric, na.rm=T)
+
+# plot (n = 143)
+plot_internet_freq <- count_internet %>%
+  # calculate percent
+  mutate(n_internet = nrow(x_2022_september_qualtrics_data) - count_internet$n[is.na(count_internet$how_often_internet)],
+    Percentage = n/n_internet) %>%
+  # remove NAs
+  filter(!is.na(how_often_internet)) %>%
+  # rename items
+  mutate(how_often_internet = case_when(
+    str_detect(how_often_internet, "Never") ~ "Never",
+    str_detect(how_often_internet, "Rarely") ~ "Rarely",
+    str_detect(how_often_internet, "Occasionally") ~ "Occasionally",
+    str_detect(how_often_internet, "Often") ~ "Often",
+    str_detect(how_often_internet, "Frequently") ~ "Frequently")) %>%
+  ggplot() + 
+  geom_bar(aes(x = factor(0), y = Percentage, 
+               fill = factor(how_often_internet, 
+                             levels = c("Frequently", "Often", "Occasionally", "Rarely", "Never"))), 
+               position="stack", stat="identity") +
+  coord_flip() + 
+  scale_fill_manual(values = c("#e31a1c", "#fb9a99", "#d9d9d9", "#6baed6", "#3182bd")) +
+  theme_minimal(base_size = 20) +
+  theme(legend.position="bottom",
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +
+  guides(fill=guide_legend(title="Frequency", reverse = TRUE))
+
+plot_internet_freq
+
+ggsave("plot_internet_freq.jpg", plot_internet_freq,
+       width = 12,
+       height = 4)
+
+```
+## 8. topics interested
 ```{r}
 by_topic <- x_2022_september_qualtrics_data %>%
   select(starts_with("which_topics")) %>%
@@ -243,8 +337,27 @@ mean(n_topics_per_participants$sum)
 sd(n_topics_per_participants$sum)
 range(n_topics_per_participants$sum)
 
+# boxplot showing number of choices
+plot_n_topics_interested <- ggplot(n_topics_per_participants, aes(x=factor(0), y=sum))+
+  geom_boxplot() +
+  scale_y_continuous(breaks = seq(0, 8, by = 1)) +
+  geom_jitter(width = 0.25, height = 0.25, alpha = 0.5) +
+  #geom_point(aes(y=sum), color="black") +
+  #geom_dotplot(binaxis='y', stackdir='center', dotsize = 0.4, alpha = 0.65)+
+  theme_minimal(base_size = 20) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(y = "Number of topics selected")
+
+ggsave("plot_n_topics_interested.jpg", plot_n_topics_interested,
+       width = 6,
+       height = 8)
+
+
 # frequency of topics
-topic_sums <- as.data.frame(colSums(by_topic, na.rm=T))
+topic_sums <- as.data.frame(colSums(by_topic, na.rm=T)) %>%
+  arrange(desc(colSums(by_topic, na.rm = T)))
 
 # plot frequency of topics
 plot_topic <- by_topic %>%
@@ -303,6 +416,345 @@ ggsave("plot_topic.jpg", plot_topic,
 #      mutate(which_topics_mythbusters = case_when( which_topics_mythbusters=="0" ~ 0,
 #                                              TRUE ~1)) 
 ```
+
+## 9. Important features rating: Which features were top/bottom rated? -----
+### Descriptives
+First, we will find out the top-3 and bottom-3 features (* removing "other" from the analysis)
+```{r}
+data_feature <- x_2022_september_qualtrics_data %>%
+  ## select relevant variables
+  select(response_id, starts_with("importance_"), -starts_with("importance_other")) %>%
+  ## transpose data frame
+  pivot_longer(-response_id, names_to = "feature", values_to = "rating") %>%
+  mutate(feature = as.factor(feature),
+         rating = as.numeric(rating)) %>%
+  ## recode feature levels
+  mutate(feature = recode(feature,
+                          "importance_concrete_advice" = "Concrete advice",
+                          "importance_free" = "Free",
+                          "importance_easy_to_access" = "Easy to access",
+                          "importance_understandable" = "Understandable",
+                          "importance_engaging" = "Engaging",
+                          "importance_EDI" = "Diverse and inclusive",
+                          "importance_social_media" = "Linked to social media",
+                          "importance_reliable" = "Reliable",
+                          "importance_evidence_based" = "Evidence-based",
+                          "importance_unpretentious" = "Unpretentious",
+                          "importance_respectful" = "Respectful",
+                          "importance_fun" = "Fun",
+                          "importance_unbiased" = "Unbiased"))
+
+# calculate mean rating per features 
+mean_feature_rating <- data_feature %>%
+  filter(!is.na(rating)) %>%
+  ## calculate mean rating per feature
+  group_by(feature) %>%
+  summarize(n = n(),
+            mean_rating = mean(rating, na.rm=T)) %>%
+  arrange(mean_rating) %>% # sort by ascending order as the smaller value indicates greater importance
+  ungroup()
+
+#crank::meanranks(data_feature %>%
+#                   pivot_wider(id_cols = response_id, names_from = feature, values_from = rating) %>%
+#                   select(-response_id))
+
+plot_mean_feature_rating <- mean_feature_rating %>%
+  ggplot(aes(x = reorder(feature, -mean_rating), y = mean_rating)) +
+  geom_point(size = 5) + 
+  theme_minimal() +
+  scale_y_continuous(limits = c(1, 14), breaks = seq(1, 14, by = 1)) +
+  labs(x = "Feature",
+       y = "Importance rating averaged across participants") + 
+  coord_flip() +
+  annotate("text", x=1, y=2, label="most important ←", color="red") +
+  annotate("text", x=1, y=13, label="→ least important", color ="red")
+
+
+# visualize all variables by number of participants voted per feature
+plot_feature_all <- data_feature %>%
+  count(rating, feature) %>% # count combos of rating & feature
+  ggplot(aes(x = rating, y = n, fill = factor(feature, levels = as.vector(mean_feature_rating$feature)))) +
+  geom_col(position = "fill") +
+  theme_minimal() +
+  scale_x_continuous(breaks=seq(1, 14, 1)) +
+  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ff7f00", "#fdbf6f", 
+                               "#ffed6f", "#b2df8a", "#33a02c", "#02818a",
+                               "#a6cee3", "#1f78b4", "#cab2d6", "#6a3d9a")) +
+  labs(x = "Rating (with 1 being the most important)",
+       y = "Proportion of participants",
+       fill = "Feature")
+
+plot_feature_per_feature <- data_feature %>%
+  count(rating, feature) %>%
+  group_by(rating) %>%
+  mutate(rating = as.factor(rating),
+         #sum = sum(n),
+         prop = n/161) %>%
+  ungroup() %>%
+  #mutate(feature = match(as.vector(mean_feature_rating$feature), feature)) %>%
+  #filter(!is.na(rating)) %>%
+  ggplot(aes(x = fct_rev(factor(feature, levels = as.vector(mean_feature_rating$feature))), 
+             y = prop, 
+             fill = rating)) +
+  geom_bar(position="stack", stat="identity") +
+  theme_minimal() +
+  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ff7f00", "#fdbf6f", 
+                               "#ffed6f", "#ffff99", "#b2df8a", "#33a02c", "#02818a",
+                               "#a6cee3", "#1f78b4", "#cab2d6", "#6a3d9a",  "#999999")) +
+  coord_flip() +
+  labs(x = "Feature",
+       y = "Proportion of participants",
+       fill = "Importance rating")
+
+```
+
+### Interrater reliability per feature
+Here, we run inter-rater reliability analysis on the top-3 and bottom-3 rated features. Each feature is run separately. 
+```{r}
+# find the top-3 and bottom-3 features (with top_1 = most important, and bottom_1 = least important)
+feature_top_1 <- mean_feature_rating %>%
+  filter(mean_rating == min(mean_rating))
+
+feature_top_2 <- mean_feature_rating %>%
+  filter(rank(mean_rating, ties.method = "min") == 2)
+
+feature_top_3 <- mean_feature_rating %>%
+  filter(rank(mean_rating, ties.method = "min") == 3)
+
+# Bottom-1 feature
+feature_bottom_1 <- mean_feature_rating %>%
+  filter(mean_rating == max(mean_rating))
+
+feature_bottom_2 <- mean_feature_rating %>%
+  filter(rank(-mean_rating, ties.method = "min") == 2)
+
+feature_bottom_3 <- mean_feature_rating %>%
+  filter(rank(-mean_rating, ties.method = "min") == 3)
+
+# ---- Plot proportion of participants in the top3 and bottom3 features ----
+plot_feature_top3_bottom3 <- data_feature %>%
+  mutate(rating = if_else(rating > 3 & rating < 12, "others", as.character(rating))) %>%
+  count(rating, feature) %>%
+  filter(!is.na(rating)) %>% # remove NAs
+  group_by(rating) %>%
+  mutate(rating = as.factor(rating),
+         #sum = sum(n),
+         prop = n/mean_feature_rating$n[1]) %>%
+  ungroup() %>%
+  #mutate(feature = match(as.vector(mean_feature_rating$feature), feature)) %>%
+  ggplot(aes(x = fct_rev(factor(feature, levels = as.vector(mean_feature_rating$feature))), 
+             y = prop, 
+             fill = factor(rating, levels = c("1", "2", "3", "others", "12", "13", "14")))) +
+  geom_bar(position="stack", stat="identity") +
+  theme_minimal(base_size = 20) +
+  scale_fill_manual(labels = c("1st", "2nd", "3rd", "top 4th to bottom 4th", "3rd last", "2nd last", "last"), 
+                    values = c("#a50026", "#e31a1c", "#fb9a99", "#d9d9d9", "#6baed6", "#3182bd", "#08519c")) +
+  scale_y_continuous(breaks = seq(0, 1, by = 0.1)) +
+  coord_flip() +
+  labs(x = "Feature",
+       y = "Proportion of participants",
+       fill = "Importance rating") 
+  
+ggsave("plot_feature_top3_bottom3.jpg", plot_feature_top3_bottom3,
+       width = 12,
+       height = 8)
+
+# ---- kendall (for ordinal data; cannot run on individual items?) ----
+## overall 
+data_feature_overall <- data_feature %>%
+  filter(!is.na(rating)) %>%
+  pivot_wider(id_cols = feature, names_from = response_id, values_from = rating)
+
+irr::kendall(data_feature_overall %>% select(-feature), correct = FALSE) # The W estimate of 0.358 indicates a moderate effect
+
+## top 3 features
+data_feature_top <- data_feature %>%
+  filter(feature == feature_top_1$feature & !is.na(rating) |
+         feature == feature_top_2$feature & !is.na(rating) | 
+         feature == feature_top_3$feature & !is.na(rating)) %>%
+  pivot_wider(id_cols = feature, names_from = response_id, values_from = rating) #%>%
+  # turn into binary data (1 = rated in top 3, 0 = not)
+  #mutate_if(is.numeric, funs(ifelse(. <= 3, 1, 0)))
+
+irr::kendall(data_feature_top %>% select(-feature), correct = FALSE) # The W estimate of 0.295 indicates a small effect
+
+## bottom 3 features
+data_feature_bottom <- data_feature %>%
+  filter(feature == feature_bottom_1$feature & !is.na(rating) |
+         feature == feature_bottom_2$feature & !is.na(rating) | 
+         feature == feature_bottom_3$feature & !is.na(rating)) %>%
+  pivot_wider(id_cols = feature, names_from = response_id, values_from = rating)
+
+irr::kendall(data_feature_bottom %>% select(-feature), correct = FALSE) # The W estimate of 0.121 indicates a small effect
+
+# ---- kappam.fleiss (not the best test to use) ----
+irr::kappam.fleiss(data_feature_top)
+irr::kappam.fleiss(data_feature_bottom)
+
+# Top 1: inter-rater
+irr_feature_top_1 <- data_feature %>%
+  filter(feature == feature_top_1$feature & !is.na(rating)) %>%
+  select(-feature) %>%
+  pivot_wider(names_from = response_id, values_from = rating) %>%
+  irr::kappam.fleiss(.)
+
+irr_feature_top_1
+
+# Top 2: inter-rater
+irr_feature_top_2 <- data_feature %>%
+  filter(feature == feature_top_2$feature & !is.na(rating)) %>%
+  select(-feature) %>%
+  pivot_wider(names_from = response_id, values_from = rating) %>%
+  irr::kappam.fleiss(.)
+
+irr_feature_top_2
+
+# Top 3: inter-rater
+irr_feature_top_3 <- data_feature %>%
+  filter(feature == feature_top_3$feature & !is.na(rating)) %>%
+  select(-feature) %>%
+  pivot_wider(names_from = response_id, values_from = rating) %>%
+  irr::kappam.fleiss(.)
+
+irr_feature_top_3
+
+# Bottom 3: inter-rater
+irr_feature_bottom_3 <- data_feature %>%
+  filter(feature == feature_bottom_3$feature & !is.na(rating)) %>%
+  select(-feature) %>%
+  pivot_wider(names_from = response_id, values_from = rating) %>%
+  irr::kappam.fleiss(.)
+
+irr_feature_bottom_3
+
+# Bottom 2: inter-rater
+irr_feature_bottom_2 <- data_feature %>%
+  filter(feature == feature_bottom_2$feature & !is.na(rating)) %>%
+  select(-feature) %>%
+  pivot_wider(names_from = response_id, values_from = rating) %>%
+  irr::kappam.fleiss(.)
+
+irr_feature_bottom_2
+
+# Bottom 1: inter-rater
+irr_feature_bottom_1 <- data_feature %>%
+  filter(feature == feature_bottom_1$feature & !is.na(rating)) %>%
+  select(-feature) %>%
+  pivot_wider(names_from = response_id, values_from = rating) %>%
+  irr::kappam.fleiss(.)
+
+irr_feature_bottom_1
+```
+
+### relationship between internet search frequency and important features rating
+Do people who search the internet more prefer different features from those who search it less?
+```{r}
+east <- c("China", "Hong Kong (S.A.R.)", "Japan", "Singapore", "United Arab Emirates")
+
+data_relation <- x_2022_september_qualtrics_data %>%
+  ## select relevant variables
+  select(response_id, country, how_often_internet, starts_with("importance_"), -starts_with("importance_other")) %>%
+  ## create binary variables
+  mutate(binary_country = factor(case_when(country %in% east ~ "East",
+                                 TRUE ~ "West"),
+                                 levels = c("West", "East")),
+         binary_feature = case_when(importance_evidence_based <= 5 ~ 1,
+                                    importance_reliable <= 5 ~ 1,
+                                    importance_concrete_advice <= 5 ~ 1,
+                                    TRUE ~ 0)) %>%
+  ## as.factor(how_often_internet)
+  mutate(how_often_internet = factor(how_often_internet,
+                                     levels = c("Never", 
+                                                "Rarely \r\nA few times a year", 
+                                                "Occasionally \r\nOnce a month",
+                                                "Often\r\nEvery other week",
+                                                "Frequently\r\nMore than once a week"))) %>%
+  ## as binary (how_often_internet)
+  mutate(binary_how_often_internet = case_when(
+    how_often_internet == "Never" | how_often_internet == "Rarely \r\nA few times a year" | how_often_internet == "Occasionally \r\nOnce a month" ~ 0,
+    how_often_internet == "Often\r\nEvery other week" | how_often_internet == "Frequently\r\nMore than once a week" ~ 1,
+    TRUE ~ NA_real_
+  ))
+
+relation_model <- data_relation %>%
+  select(-c(country, starts_with("importance_"))) %>%
+  glm(binary_feature ~ binary_how_often_internet * binary_country, 
+        family = binomial, 
+        data = .)
+
+broom::tidy(relation_model) %>%
+  as.data.frame %>%
+  rename(SE = `std.error`, 
+         z = `statistic`,
+         p = `p.value`) %>%
+  mutate(p = case_when(
+    p < .001 ~ "<.001",
+    p < .01 ~ "<.01",
+    p < .05 ~ "<.05",
+    TRUE ~ as.character(round(p,3)))) %>%
+  mutate_if(is.numeric, round, digits = 2)
+
+```
+
+
+## 10. comics and participation mode and mean
+```{r}
+count_participation<- x_2022_september_qualtrics_data %>%
+  group_by(participate_in_science) %>%
+  count(participate_in_science)
+
+count_participation
+
+#mode
+find_mode(x_2022_september_qualtrics_data$participate_in_science)
+
+#mean
+participation <- x_2022_september_qualtrics_data %>%
+  mutate(participate_in_science = case_when(
+    str_detect(participate_in_science, "discourages") ~ 1,
+    str_detect(participate_in_science, "haven't thought") ~ 2,
+    str_detect(participate_in_science, "neither") ~ 3,
+    str_detect(participate_in_science, "Yes") ~ 4,
+    TRUE ~ NA_real_))
+
+mean(helpfulness$helpfulness_numeric, na.rm=T)
+
+
+# plot (n = 123)
+plot_participation <- count_participation %>%
+  # calculate percent
+  mutate(n_participation = nrow(x_2022_september_qualtrics_data) - count_participation$n[is.na(count_participation$participate_in_science)],
+    Percentage = n/n_participation) %>%
+  # remove NAs
+  filter(!is.na(participate_in_science)) %>%
+  # rename items
+  mutate(participate_in_science = case_when(
+    str_detect(participate_in_science, "discourages") ~ "Discourage",
+    str_detect(participate_in_science, "haven't thought") ~ "Haven't thought about it",
+    str_detect(participate_in_science, "neither") ~ "Neither",
+    str_detect(participate_in_science, "Yes") ~ "Motivate")) %>%
+  ggplot() + 
+  geom_bar(aes(x = factor(0), y = Percentage, 
+               fill = factor(participate_in_science, 
+                             levels = c("Motivate", "Neither", "Haven't thought about it", "Discourage"))), 
+               position="stack", stat="identity") +
+  coord_flip() + 
+  scale_fill_manual(values = c("#e31a1c", "#d9d9d9", "#6baed6", "#3182bd")) +
+  theme_minimal(base_size = 20) +
+  theme(legend.position="bottom",
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +
+  guides(fill=guide_legend(title="Participation", reverse = TRUE))
+
+plot_participation
+
+ggsave("plot_participation.jpg", plot_participation,
+       width = 12,
+       height = 4)
+
+```
+
 
 
 
@@ -596,283 +1048,5 @@ res_corr <- as.data.frame(round(mat,2)) #this data frame has a correlation matri
 
 
 
-
-```
-
-
-
-
-
-
-
-
-## ----- Important features rating: Which features were top/bottom rated? -----
-### Descriptives
-First, we will find out the top-3 and bottom-3 features (* removing "other" from the analysis)
-```{r}
-data_feature <- x_2022_september_qualtrics_data %>%
-  ## select relevant variables
-  select(response_id, starts_with("importance_"), -starts_with("importance_other")) %>%
-  ## transpose data frame
-  pivot_longer(-response_id, names_to = "feature", values_to = "rating") %>%
-  mutate(feature = as.factor(feature),
-         rating = as.numeric(rating)) %>%
-  ## recode feature levels
-  mutate(feature = recode(feature,
-                          "importance_concrete_advice" = "Concrete advice",
-                          "importance_free" = "Free",
-                          "importance_easy_to_access" = "Easy to access",
-                          "importance_understandable" = "Understandable",
-                          "importance_engaging" = "Engaging",
-                          "importance_EDI" = "Diverse and inclusive",
-                          "importance_social_media" = "Linked to social media",
-                          "importance_reliable" = "Reliable",
-                          "importance_evidence_based" = "Evidence-based",
-                          "importance_unpretentious" = "Unpretentious",
-                          "importance_respectful" = "Respectful",
-                          "importance_fun" = "Fun",
-                          "importance_unbiased" = "Unbiased"))
-
-# calculate mean rating per features 
-mean_feature_rating <- data_feature %>%
-  filter(!is.na(rating)) %>%
-  ## calculate mean rating per feature
-  group_by(feature) %>%
-  summarize(n = n(),
-            mean_rating = mean(rating, na.rm=T)) %>%
-  arrange(mean_rating) %>% # sort by ascending order as the smaller value indicates greater importance
-  ungroup()
-
-#crank::meanranks(data_feature %>%
-#                   pivot_wider(id_cols = response_id, names_from = feature, values_from = rating) %>%
-#                   select(-response_id))
-
-plot_mean_feature_rating <- mean_feature_rating %>%
-  ggplot(aes(x = reorder(feature, -mean_rating), y = mean_rating)) +
-  geom_point(size = 5) + 
-  theme_minimal() +
-  scale_y_continuous(limits = c(1, 14), breaks = seq(1, 14, by = 1)) +
-  labs(x = "Feature",
-       y = "Importance rating averaged across participants") + 
-  coord_flip() +
-  annotate("text", x=1, y=2, label="most important ←", color="red") +
-  annotate("text", x=1, y=13, label="→ least important", color ="red")
-
-
-# visualize all variables by number of participants voted per feature
-
-plot_feature_all <- data_feature %>%
-  count(rating, feature) %>% # count combos of rating & feature
-  ggplot(aes(x = rating, y = n, fill = factor(feature, levels = as.vector(mean_feature_rating$feature)))) +
-  geom_col(position = "fill") +
-  theme_minimal() +
-  scale_x_continuous(breaks=seq(1, 14, 1)) +
-  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ff7f00", "#fdbf6f", 
-                               "#ffed6f", "#b2df8a", "#33a02c", "#02818a",
-                               "#a6cee3", "#1f78b4", "#cab2d6", "#6a3d9a")) +
-  labs(x = "Rating (with 1 being the most important)",
-       y = "Proportion of participants",
-       fill = "Feature")
-
-plot_feature_per_feature <- data_feature %>%
-  count(rating, feature) %>%
-  group_by(rating) %>%
-  mutate(rating = as.factor(rating),
-         #sum = sum(n),
-         prop = n/161) %>%
-  ungroup() %>%
-  #mutate(feature = match(as.vector(mean_feature_rating$feature), feature)) %>%
-  #filter(!is.na(rating)) %>%
-  ggplot(aes(x = fct_rev(factor(feature, levels = as.vector(mean_feature_rating$feature))), 
-             y = prop, 
-             fill = rating)) +
-  geom_bar(position="stack", stat="identity") +
-  theme_minimal() +
-  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ff7f00", "#fdbf6f", 
-                               "#ffed6f", "#ffff99", "#b2df8a", "#33a02c", "#02818a",
-                               "#a6cee3", "#1f78b4", "#cab2d6", "#6a3d9a",  "#999999")) +
-  coord_flip() +
-  labs(x = "Feature",
-       y = "Proportion of participants",
-       fill = "Importance rating")
-
-```
-
-### Interrater reliability per feature
-Here, we run inter-rater reliability analysis on the top-3 and bottom-3 rated features. Each feature is run separately. 
-
-```{r}
-# find the top-3 and bottom-3 features (with top_1 = most important, and bottom_1 = least important)
-feature_top_1 <- mean_feature_rating %>%
-  filter(mean_rating == min(mean_rating))
-
-feature_top_2 <- mean_feature_rating %>%
-  filter(rank(mean_rating, ties.method = "min") == 2)
-
-feature_top_3 <- mean_feature_rating %>%
-  filter(rank(mean_rating, ties.method = "min") == 3)
-
-# Bottom-1 feature
-feature_bottom_1 <- mean_feature_rating %>%
-  filter(mean_rating == max(mean_rating))
-
-feature_bottom_2 <- mean_feature_rating %>%
-  filter(rank(-mean_rating, ties.method = "min") == 2)
-
-feature_bottom_3 <- mean_feature_rating %>%
-  filter(rank(-mean_rating, ties.method = "min") == 3)
-
-# ---- Plot proportion of participants in the top3 and bottom3 features ----
-plot_feature_top3_bottom3 <- data_feature %>%
-  mutate(rating = if_else(rating > 3 & rating < 12, "others", as.character(rating))) %>%
-  count(rating, feature) %>%
-  group_by(rating) %>%
-  mutate(rating = as.factor(rating),
-         #sum = sum(n),
-         prop = n/161) %>%
-  ungroup() %>%
-  #mutate(feature = match(as.vector(mean_feature_rating$feature), feature)) %>%
-  #filter(!is.na(rating)) %>%
-  ggplot(aes(x = fct_rev(factor(feature, levels = as.vector(mean_feature_rating$feature))), 
-             y = prop, 
-             fill = factor(rating, levels = c("1", "2", "3", "others", "12", "13", "14", "NA")))) +
-  geom_bar(position="stack", stat="identity") +
-  theme_minimal(base_size = 20) +
-  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ffffff", "#6baed6", "#3182bd", "#08519c", "#cccccc")) +
-  coord_flip() +
-  labs(x = "Feature",
-       y = "Proportion of participants",
-       fill = "Importance rating") 
-  
-ggsave("plot_feature_top3_bottom3.jpg", plot_feature_top3_bottom3,
-       width = 12,
-       height = 8)
-
-# ---- kendall (for ordinal data; cannot run on individual items?) ----
-data_feature_overall <- data_feature %>%
-  filter(!is.na(rating)) %>%
-  pivot_wider(id_cols = feature, names_from = response_id, values_from = rating)
-
-irr::kendall(data_feature_overall %>% select(-feature), correct = FALSE) # The W estimate of 0.358 indicates a moderate effect
-
-data_feature_top <- data_feature %>%
-  filter(feature == feature_top_1$feature & !is.na(rating) |
-         feature == feature_top_2$feature & !is.na(rating) | 
-         feature == feature_top_3$feature & !is.na(rating)) %>%
-  pivot_wider(id_cols = feature, names_from = response_id, values_from = rating) #%>%
-  # turn into binary data (1 = rated in top 3, 0 = not)
-  #mutate_if(is.numeric, funs(ifelse(. <= 3, 1, 0)))
-
-irr::kendall(data_feature_top %>% select(-feature), correct = FALSE) # The W estimate of 0.295 indicates a small effect
-
-data_feature_bottom <- data_feature %>%
-  filter(feature == feature_bottom_1$feature & !is.na(rating) |
-         feature == feature_bottom_2$feature & !is.na(rating) | 
-         feature == feature_bottom_3$feature & !is.na(rating)) %>%
-  pivot_wider(id_cols = feature, names_from = response_id, values_from = rating)
-
-irr::kendall(data_feature_bottom %>% select(-feature), correct = FALSE) # The W estimate of 0.121 indicates a small effect
-
-# ---- kappam.fleiss (not the best test to use) ----
-irr::kappam.fleiss(data_feature_top)
-irr::kappam.fleiss(data_feature_bottom)
-
-# Top 1: inter-rater
-irr_feature_top_1 <- data_feature %>%
-  filter(feature == feature_top_1$feature & !is.na(rating)) %>%
-  select(-feature) %>%
-  pivot_wider(names_from = response_id, values_from = rating) %>%
-  irr::kappam.fleiss(.)
-
-irr_feature_top_1
-
-# Top 2: inter-rater
-irr_feature_top_2 <- data_feature %>%
-  filter(feature == feature_top_2$feature & !is.na(rating)) %>%
-  select(-feature) %>%
-  pivot_wider(names_from = response_id, values_from = rating) %>%
-  irr::kappam.fleiss(.)
-
-irr_feature_top_2
-
-# Top 3: inter-rater
-irr_feature_top_3 <- data_feature %>%
-  filter(feature == feature_top_3$feature & !is.na(rating)) %>%
-  select(-feature) %>%
-  pivot_wider(names_from = response_id, values_from = rating) %>%
-  irr::kappam.fleiss(.)
-
-irr_feature_top_3
-
-# Bottom 3: inter-rater
-irr_feature_bottom_3 <- data_feature %>%
-  filter(feature == feature_bottom_3$feature & !is.na(rating)) %>%
-  select(-feature) %>%
-  pivot_wider(names_from = response_id, values_from = rating) %>%
-  irr::kappam.fleiss(.)
-
-irr_feature_bottom_3
-
-# Bottom 2: inter-rater
-irr_feature_bottom_2 <- data_feature %>%
-  filter(feature == feature_bottom_2$feature & !is.na(rating)) %>%
-  select(-feature) %>%
-  pivot_wider(names_from = response_id, values_from = rating) %>%
-  irr::kappam.fleiss(.)
-
-irr_feature_bottom_2
-
-# Bottom 1: inter-rater
-irr_feature_bottom_1 <- data_feature %>%
-  filter(feature == feature_bottom_1$feature & !is.na(rating)) %>%
-  select(-feature) %>%
-  pivot_wider(names_from = response_id, values_from = rating) %>%
-  irr::kappam.fleiss(.)
-
-irr_feature_bottom_1
-```
-
-
-## ----- Relationship between internet search frequency and important features rating -----
-Do people who search the internet more prefer different features from those who search it less?
-```{r}
-east <- c("China", "Hong Kong (S.A.R.)", "Japan", "Singapore", "United Arab Emirates")
-
-data_relation <- x_2022_september_qualtrics_data %>%
-  ## select relevant variables
-  select(response_id, country, how_often_internet, starts_with("importance_"), -starts_with("importance_other")) %>%
-  ## create binary variables
-  mutate(binary_country = factor(case_when(country %in% east ~ "East",
-                                 TRUE ~ "West"),
-                                 levels = c("West", "East")),
-         binary_feature = case_when(importance_evidence_based <= 5 ~ 1,
-                                    importance_reliable <= 5 ~ 1,
-                                    importance_concrete_advice <= 5 ~ 1,
-                                    TRUE ~ 0)) %>%
-  ## as.factor(how_often_internet)
-  mutate(how_often_internet = factor(how_often_internet,
-                                     levels = c("Never", 
-                                                "Rarely \r\nA few times a year", 
-                                                "Occasionally \r\nOnce a month",
-                                                "Often\r\nEvery other week",
-                                                "Frequently\r\nMore than once a week")))
-
-relation_model <- data_relation %>%
-  select(-c(country, starts_with("importance_"))) %>%
-  glm(binary_feature ~ how_often_internet * binary_country, 
-        family = binomial, 
-        data = .)
-
-broom::tidy(relation_model) %>%
-  as.data.frame %>%
-  rename(SE = `std.error`, 
-         z = `statistic`,
-         p = `p.value`) %>%
-  mutate(p = case_when(
-    p < .001 ~ "<.001",
-    p < .01 ~ "<.01",
-    p < .05 ~ "<.05",
-    TRUE ~ as.character(round(p,3)))) %>%
-  mutate_if(is.numeric, round, digits = 2)
 
 ```
