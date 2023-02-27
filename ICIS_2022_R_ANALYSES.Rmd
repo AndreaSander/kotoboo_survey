@@ -232,7 +232,7 @@ mean(helpfulness$helpfulness_numeric, na.rm=T)
 plot_helpfulness <- count_helpfulness %>%
   # calculate percent
   mutate(n_helpfulness = nrow(x_2022_september_qualtrics_data) - count_helpfulness$n[is.na(count_helpfulness$how_helpful_evidence_based)],
-    Percentage = n/n_helpfulness) %>%
+         Proportion = n/n_helpfulness) %>%
   # remove NAs
   filter(!is.na(how_helpful_evidence_based)) %>%
   # rename items
@@ -241,7 +241,7 @@ plot_helpfulness <- count_helpfulness %>%
     str_detect(how_helpful_evidence_based, "Somewhat") ~ "Somewhat helpful",
     str_detect(how_helpful_evidence_based, "Very helpful") ~ "Very helpful")) %>%
   ggplot() + 
-  geom_bar(aes(x = factor(0), y = Percentage, 
+  geom_bar(aes(x = factor(0), y = Proportion, 
                fill = factor(how_helpful_evidence_based, 
                              levels = c("Very helpful", "Somewhat helpful", "Not at all helpful"))), 
                position="stack", stat="identity") +
@@ -289,7 +289,7 @@ mean(internet_freq$internet_freq_numeric, na.rm=T)
 plot_internet_freq <- count_internet %>%
   # calculate percent
   mutate(n_internet = nrow(x_2022_september_qualtrics_data) - count_internet$n[is.na(count_internet$how_often_internet)],
-    Percentage = n/n_internet) %>%
+         Proportion = n/n_internet) %>%
   # remove NAs
   filter(!is.na(how_often_internet)) %>%
   # rename items
@@ -300,7 +300,7 @@ plot_internet_freq <- count_internet %>%
     str_detect(how_often_internet, "Often") ~ "Often",
     str_detect(how_often_internet, "Frequently") ~ "Frequently")) %>%
   ggplot() + 
-  geom_bar(aes(x = factor(0), y = Percentage, 
+  geom_bar(aes(x = factor(0), y = Proportion, 
                fill = factor(how_often_internet, 
                              levels = c("Frequently", "Often", "Occasionally", "Rarely", "Never"))), 
                position="stack", stat="identity") +
@@ -352,6 +352,34 @@ plot_n_topics_interested <- ggplot(n_topics_per_participants, aes(x=factor(0), y
 
 ggsave("plot_n_topics_interested.jpg", plot_n_topics_interested,
        width = 6,
+       height = 8)
+
+# violin plot showing number of choices (with mean being set as the reference point)
+plot_n_topics_interested_violin <- n_topics_per_participants %>%
+  ggplot(aes(x=factor(0), y=sum)) +
+  geom_violin() +
+  geom_boxplot(width=0.3, color = "blue") +  
+  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.5) +
+  #geom_jitter(width = 0.25, height = 0.1, alpha = 0.5) +
+  #geom_dotplot(binaxis='y', stackdir='center', dotsize=0.35, alpha = 0.25) +
+  stat_summary(fun = "mean",
+               geom = "crossbar", 
+               #width = 0.5,
+               colour = "red", 
+               ) +
+  #stat_summary(fun = "median",
+  #             geom = "crossbar",
+  #             color = "blue",
+  #             linetype = "dashed") +
+  scale_y_continuous(breaks = seq(0, 8, by = 1)) +
+  theme_minimal(base_size = 20) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(y = "Number of topics selected")
+
+ggsave("plot_n_topics_interested_violin.jpg", plot_n_topics_interested_violin,
+       width = 5,
        height = 8)
 
 
@@ -654,14 +682,22 @@ east <- c("China", "Hong Kong (S.A.R.)", "Japan", "Singapore", "United Arab Emir
 data_relation <- x_2022_september_qualtrics_data %>%
   ## select relevant variables
   select(response_id, country, how_often_internet, starts_with("importance_"), -starts_with("importance_other")) %>%
+  ## remove rows where a participant didn't make any response to the feature rating
+  filter(if_any(starts_with("importance_"), ~!is.na(.))) %>%
   ## create binary variables
-  mutate(binary_country = factor(case_when(country %in% east ~ "East",
+  mutate(
+    ### country: West vs. East
+    binary_country = factor(case_when(country %in% east ~ "East",
+                                           is.na(country) ~ NA_character_,
                                  TRUE ~ "West"),
                                  levels = c("West", "East")),
-         binary_feature = case_when(importance_evidence_based <= 5 ~ 1,
-                                    importance_reliable <= 5 ~ 1,
-                                    importance_concrete_advice <= 5 ~ 1,
-                                    TRUE ~ 0)) %>%
+    ### feature in top 5 or not
+    #binary_feature = case_when(as.numeric(importance_evidence_based) <= 5 | as.numeric(importance_reliable) <= 5 | as.numeric(importance_concrete_advice) <= 5 ~ 1,
+    binary_feature = case_when(as.numeric(importance_evidence_based) <= 5 & as.numeric(importance_reliable) <= 5 & as.numeric(importance_concrete_advice) <= 5 ~ 1,
+    #binary_feature = case_when(as.numeric(importance_evidence_based) <= 5 & as.numeric(importance_reliable) <= 5 | 
+    #                           as.numeric(importance_evidence_based) <= 5 & as.numeric(importance_concrete_advice) <= 5 |
+    #                           as.numeric(importance_reliable) <= 5 & as.numeric(importance_concrete_advice) <= 5 ~ 1,
+                               TRUE ~ 0)) %>%
   ## as.factor(how_often_internet)
   mutate(how_often_internet = factor(how_often_internet,
                                      levels = c("Never", 
@@ -671,16 +707,20 @@ data_relation <- x_2022_september_qualtrics_data %>%
                                                 "Frequently\r\nMore than once a week"))) %>%
   ## as binary (how_often_internet)
   mutate(binary_how_often_internet = case_when(
-    how_often_internet == "Never" | how_often_internet == "Rarely \r\nA few times a year" | how_often_internet == "Occasionally \r\nOnce a month" ~ 0,
-    how_often_internet == "Often\r\nEvery other week" | how_often_internet == "Frequently\r\nMore than once a week" ~ 1,
-    TRUE ~ NA_real_
-  ))
+    how_often_internet == "Never" | how_often_internet == "Rarely \r\nA few times a year" | how_often_internet == "Occasionally \r\nOnce a month" ~ "less",
+    how_often_internet == "Often\r\nEvery other week" | how_often_internet == "Frequently\r\nMore than once a week" ~ "more",
+    TRUE ~ NA_character_),
+    binary_how_often_internet = as.factor(binary_how_often_internet)
+    )
 
 relation_model <- data_relation %>%
   select(-c(country, starts_with("importance_"))) %>%
   glm(binary_feature ~ binary_how_often_internet * binary_country, 
-        family = binomial, 
-        data = .)
+      family = binomial, 
+      data = .,
+      contrasts = list(binary_how_often_internet = contr.sum(2)/-2,
+                       binary_country = contr.sum(2)/-2)
+      )
 
 broom::tidy(relation_model) %>%
   as.data.frame %>%
@@ -724,7 +764,7 @@ mean(helpfulness$helpfulness_numeric, na.rm=T)
 plot_participation <- count_participation %>%
   # calculate percent
   mutate(n_participation = nrow(x_2022_september_qualtrics_data) - count_participation$n[is.na(count_participation$participate_in_science)],
-    Percentage = n/n_participation) %>%
+         Proportion = n/n_participation) %>%
   # remove NAs
   filter(!is.na(participate_in_science)) %>%
   # rename items
@@ -734,7 +774,7 @@ plot_participation <- count_participation %>%
     str_detect(participate_in_science, "neither") ~ "Neither",
     str_detect(participate_in_science, "Yes") ~ "Motivate")) %>%
   ggplot() + 
-  geom_bar(aes(x = factor(0), y = Percentage, 
+  geom_bar(aes(x = factor(0), y = Proportion, 
                fill = factor(participate_in_science, 
                              levels = c("Motivate", "Neither", "Haven't thought about it", "Discourage"))), 
                position="stack", stat="identity") +
