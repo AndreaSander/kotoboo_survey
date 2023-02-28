@@ -358,8 +358,8 @@ ggsave("plot_n_topics_interested.jpg", plot_n_topics_interested,
 plot_n_topics_interested_violin <- n_topics_per_participants %>%
   ggplot(aes(x=factor(0), y=sum)) +
   geom_violin() +
-  geom_boxplot(width=0.3, color = "blue") +  
-  geom_jitter(shape=16, position=position_jitter(0.2), alpha = 0.5) +
+  #geom_boxplot(width=0.3, color = "blue") +  
+  geom_jitter(shape=19, position=position_jitter(width=0.25,height=0.25), alpha = 0.5) +
   #geom_jitter(width = 0.25, height = 0.1, alpha = 0.5) +
   #geom_dotplot(binaxis='y', stackdir='center', dotsize=0.35, alpha = 0.25) +
   stat_summary(fun = "mean",
