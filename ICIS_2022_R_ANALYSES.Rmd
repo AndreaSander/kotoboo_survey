@@ -136,9 +136,14 @@ sum(x_2022_september_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #
 
 ## 3. by country info
 ```{r}
-
-country_table<- as.data.frame(table(x_2022_september_qualtrics_data$country))
-print(country_table)
+country_table <- x_2022_september_qualtrics_data %>%
+  select(response_id, country) %>%
+  group_by(country) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  mutate(total_n = sum(n),
+         n_percent = round(n/total_n * 100, 1)) %>%
+  arrange(desc(n_percent))
 
 #I will make a png map with this info
 ```
