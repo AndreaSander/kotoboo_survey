@@ -14,6 +14,7 @@ library(janitor)
 library(readxl)
 library(stringr)
 library(lme4)
+library(lmerTest)
 library(ggplot2)
 #library(tidylog)
 
@@ -300,14 +301,14 @@ plot_internet_freq <- count_internet %>%
   # rename items
   mutate(how_often_internet = case_when(
     str_detect(how_often_internet, "Never") ~ "Never",
-    str_detect(how_often_internet, "Rarely") ~ "Rarely",
-    str_detect(how_often_internet, "Occasionally") ~ "Occasionally",
-    str_detect(how_often_internet, "Often") ~ "Often",
-    str_detect(how_often_internet, "Frequently") ~ "Frequently")) %>%
+    str_detect(how_often_internet, "Rarely") ~ "Rarely (a few times a year)",
+    str_detect(how_often_internet, "Occasionally") ~ "Occasionally (once a month)",
+    str_detect(how_often_internet, "Often") ~ "Often (every other week)",
+    str_detect(how_often_internet, "Frequently") ~ "Frequently (more than one a week)")) %>%
   ggplot() + 
   geom_bar(aes(x = factor(0), y = Proportion, 
                fill = factor(how_often_internet, 
-                             levels = c("Frequently", "Often", "Occasionally", "Rarely", "Never"))), 
+                             levels = c("Frequently (more than one a week)", "Often (every other week)", "Occasionally (once a month)", "Rarely (a few times a year)", "Never"))), 
                position="stack", stat="identity") +
   coord_flip() + 
   scale_fill_manual(values = c("#e31a1c", "#fb9a99", "#d9d9d9", "#6baed6", "#3182bd")) +
@@ -316,7 +317,7 @@ plot_internet_freq <- count_internet %>%
         axis.title.y=element_blank(),
         axis.text.y=element_blank(),
         axis.ticks.y=element_blank()) +
-  guides(fill=guide_legend(title="Frequency", reverse = TRUE))
+  guides(fill=guide_legend(title="Frequency", reverse = TRUE, nrow = 2))
 
 plot_internet_freq
 
@@ -697,11 +698,14 @@ data_relation <- x_2022_september_qualtrics_data %>%
                                  TRUE ~ "West"),
                                  levels = c("West", "East")),
     ### feature in top 5 or not
+    #### any 1 of the features in the top 5
     #binary_feature = case_when(as.numeric(importance_evidence_based) <= 5 | as.numeric(importance_reliable) <= 5 | as.numeric(importance_concrete_advice) <= 5 ~ 1,
-    binary_feature = case_when(as.numeric(importance_evidence_based) <= 5 & as.numeric(importance_reliable) <= 5 & as.numeric(importance_concrete_advice) <= 5 ~ 1,
-    #binary_feature = case_when(as.numeric(importance_evidence_based) <= 5 & as.numeric(importance_reliable) <= 5 | 
-    #                           as.numeric(importance_evidence_based) <= 5 & as.numeric(importance_concrete_advice) <= 5 |
-    #                           as.numeric(importance_reliable) <= 5 & as.numeric(importance_concrete_advice) <= 5 ~ 1,
+    #### all 3 features in the top 5
+    #binary_feature = case_when(as.numeric(importance_evidence_based) <= 5 & as.numeric(importance_reliable) <= 5 & as.numeric(importance_concrete_advice) <= 5 ~ 1,
+    #### any of the 2 features in the top 5
+    binary_feature = case_when(as.numeric(importance_evidence_based) <= 5 & as.numeric(importance_reliable) <= 5 | 
+                               as.numeric(importance_evidence_based) <= 5 & as.numeric(importance_concrete_advice) <= 5 |
+                               as.numeric(importance_reliable) <= 5 & as.numeric(importance_concrete_advice) <= 5 ~ 1,
                                TRUE ~ 0)) %>%
   ## as.factor(how_often_internet)
   mutate(how_often_internet = factor(how_often_internet,
@@ -727,7 +731,26 @@ relation_model <- data_relation %>%
                        binary_country = contr.sum(2)/-2)
       )
 
-broom::tidy(relation_model) %>%
+relation_model_noInteraction <- data_relation %>%
+  select(-c(country, starts_with("importance_"))) %>%
+  glm(binary_feature ~ binary_how_often_internet + binary_country, 
+      family = binomial, 
+      data = .,
+      contrasts = list(binary_how_often_internet = contr.sum(2)/-2,
+                       binary_country = contr.sum(2)/-2)
+      )
+
+relation_model_noCountry <- data_relation %>%
+  select(-c(country, starts_with("importance_"))) %>%
+  glm(binary_feature ~ binary_how_often_internet, 
+      family = binomial, 
+      data = .,
+      contrasts = list(binary_how_often_internet = contr.sum(2)/-2)
+      )
+
+anova(relation_model_noCountry, relation_model, test="Chi")
+
+broom::tidy(relation_model_noCountry) %>%
   as.data.frame %>%
   rename(SE = `std.error`, 
          z = `statistic`,
