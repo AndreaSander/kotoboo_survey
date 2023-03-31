@@ -727,8 +727,8 @@ relation_model <- data_relation %>%
   glm(binary_feature ~ binary_how_often_internet * binary_country, 
       family = binomial, 
       data = .,
-      contrasts = list(binary_how_often_internet = contr.sum(2)/-2,
-                       binary_country = contr.sum(2)/-2)
+      contrasts = list(binary_how_often_internet = contr.sum(2)/2,
+                       binary_country = contr.sum(2)/2)
       )
 
 relation_model_noInteraction <- data_relation %>%
@@ -736,8 +736,8 @@ relation_model_noInteraction <- data_relation %>%
   glm(binary_feature ~ binary_how_often_internet + binary_country, 
       family = binomial, 
       data = .,
-      contrasts = list(binary_how_often_internet = contr.sum(2)/-2,
-                       binary_country = contr.sum(2)/-2)
+      contrasts = list(binary_how_often_internet = contr.sum(2)/2,
+                       binary_country = contr.sum(2)/2)
       )
 
 relation_model_noCountry <- data_relation %>%
@@ -745,7 +745,7 @@ relation_model_noCountry <- data_relation %>%
   glm(binary_feature ~ binary_how_often_internet, 
       family = binomial, 
       data = .,
-      contrasts = list(binary_how_often_internet = contr.sum(2)/-2)
+      contrasts = list(binary_how_often_internet = contr.sum(2)/2)
       )
 
 anova(relation_model_noCountry, relation_model, test="Chi")
