@@ -42,9 +42,10 @@ x_2022_september_qualtrics_data <- x_2022_september_qualtrics_data %>%
   filter(recaptcha_score >=.80) %>% #200 3 excluded
   filter(year_birth <=2004) %>% #161 39 excluded
   filter(year_birth >=1922) %>% #161 0 excluded
-  filter(consent=="I consent") #161 0 excluded
+  filter(consent=="I consent")%>% #161 0 excluded
+  filter(is_parent=="Parent") #127 34 excluded
 
-##range(as.numeric(x_2022_september_qualtrics_data$progress)) #31-100 completed
+#range(as.numeric(x_2022_september_qualtrics_data$progress)) #50-100 completed
 
 # further exclude based on the completion rate (i.e., no response from Q5 onwards)
 ## first, check completion per question
@@ -75,7 +76,7 @@ exclusion_completion <- x_2022_september_qualtrics_data %>%
 
 ## remove those response_id from the data
 x_2022_september_qualtrics_data <- x_2022_september_qualtrics_data %>%
-  anti_join(exclusion_completion) #149 12 more excluded
+  anti_join(exclusion_completion) # 1 more excluded
 
 ```
 
@@ -88,9 +89,9 @@ x_2022_september_qualtrics_data <- x_2022_september_qualtrics_data %>%
   select(-starts_with(c("completed_", "flag_"))) #remove unnecessary variables
 
 # mean, range, sd of completion rate
-mean(as.numeric(x_2022_september_qualtrics_data$rate_completed)) # mean of 94% completion
+mean(as.numeric(x_2022_september_qualtrics_data$rate_completed)) # mean of 94.58% completion
 range(as.numeric(x_2022_september_qualtrics_data$rate_completed)) #45-100% completed
-sd(as.numeric(x_2022_september_qualtrics_data$rate_completed)) # sd of 13.48%
+sd(as.numeric(x_2022_september_qualtrics_data$rate_completed)) # sd of 12.76%
 
 #average_pop <- x_2022_september_qualtrics_data %>%
 #  select(progress) #%>%
@@ -106,12 +107,12 @@ sd(as.numeric(x_2022_september_qualtrics_data$rate_completed)) # sd of 13.48%
 
 # average time spent in survey (take median as the better measure)
 ```{r}
-mean(as.numeric(x_2022_september_qualtrics_data$duration_s))
-median(as.numeric(x_2022_september_qualtrics_data$duration_s))
+mean(as.numeric(x_2022_september_qualtrics_data$duration_s)) # 15522.56
+median(as.numeric(x_2022_september_qualtrics_data$duration_s))#237
 table(x_2022_september_qualtrics_data$duration_s)
 
 # to minutes
-median(as.numeric(x_2022_september_qualtrics_data$duration_s))/60
+median(as.numeric(x_2022_september_qualtrics_data$duration_s))/60 #3.95
 ```
 
 # get demographic info
@@ -123,15 +124,15 @@ x_2022_september_qualtrics_data <- x_2022_september_qualtrics_data %>%
   mutate(age = survey_year - as.numeric(year_birth))
 
 range(x_2022_september_qualtrics_data$age) #19-63 years
-mean(x_2022_september_qualtrics_data$age) #35.68 years
-sd(x_2022_september_qualtrics_data$age) #6.36
+mean(x_2022_september_qualtrics_data$age) #36.08 years
+sd(x_2022_september_qualtrics_data$age) #5.92
 ``` 
 
 ## 2. gender
 ```{r}
-sum(x_2022_september_qualtrics_data$gender=="Female", na.rm = T) #117 female
-sum(x_2022_september_qualtrics_data$gender=="Male", na.rm = T)  # 28 male
-sum(x_2022_september_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #4 
+sum(x_2022_september_qualtrics_data$gender=="Female", na.rm = T) #100 female
+sum(x_2022_september_qualtrics_data$gender=="Male", na.rm = T)  # 23 male
+sum(x_2022_september_qualtrics_data$gender=="Prefer not to answer", na.rm = T) #3
 #NA = 1
 ```
 
@@ -149,53 +150,53 @@ country_table <- x_2022_september_qualtrics_data %>%
 #I will make a png map with this info
 ```
 
-## 4. caregivers' breakdown
+## 4. caregivers' breakdown---- not relevant any more as we decided to only keep parents. 
 ```{r}
-caregivers <- x_2022_september_qualtrics_data %>%
-  select(not_caregiver, starts_with("is_")) %>%
-  mutate_all(funs(replace(., !is.na(.), 1))) %>%
-  mutate_all(funs(as.numeric))
+#caregivers <- x_2022_september_qualtrics_data %>%
+ # select(not_caregiver, starts_with("is_")) %>%
+  #mutate_all(funs(replace(., !is.na(.), 1))) %>%
+  #mutate_all(funs(as.numeric))
 
-caregivers_sums <- caregivers %>%
-  summarise_all(.funs = c(sum = "sum"), na.rm = T) %>%
-  pivot_longer(everything(), names_to = "caregiver_type", values_to = "sum") %>%
-  mutate(percentage = round(sum / nrow(x_2022_september_qualtrics_data) * 100)) %>%
-  arrange(desc(percentage))
+#caregivers_sums <- caregivers %>%
+ # summarise_all(.funs = c(sum = "sum"), na.rm = T) %>%
+  #pivot_longer(everything(), names_to = "caregiver_type", values_to = "sum") %>%
+  #mutate(percentage = round(sum / nrow(x_2022_september_qualtrics_data) * 100)) %>%
+  #arrange(desc(percentage))
 
 #A. Percentage of caregivers
-careg<- x_2022_september_qualtrics_data %>%
-  select(c(not_caregiver, is_parent, is_teacher, is_grandparent, is_babysitter, is_aunt_uncle,
-           is_sibling, is_therapist, is_neighbour, is_family_friend, is_other))  %>%
-  mutate(not_caregiver = case_when(not_caregiver == "I am not a caregiver" ~ "T",
-                                   TRUE~"F")) %>%
-    mutate(is_parent = case_when(is_parent == "Parent" ~ "T",
-                                   TRUE~"F")) %>%
-    mutate(is_teacher = case_when(is_teacher == "Teacher/Educator" ~ "T",
-                                   TRUE~"F")) %>%
-      mutate(is_grandparent = case_when(is_grandparent == "Grandparent" ~ "T",
-                                   TRUE~"F")) %>%
-        mutate(is_babysitter = case_when(is_babysitter == "Nanny/Babysitter" ~ "T",
-                                   TRUE~"F")) %>%
-        mutate(is_aunt_uncle = case_when(is_aunt_uncle == "Uncle/Aunt" ~ "T",
-                                   TRUE~"F"))%>%
-        mutate(is_sibling = case_when(is_sibling == "Sibling" ~ "T",
-                                   TRUE~"F")) %>%
-        mutate(is_therapist = case_when(is_therapist == "Therapist" ~ "T",
-                                   TRUE~"F")) %>%
-        mutate(is_neighbour = case_when(is_neighbour == "Neighbour" ~ "T",
-                                   TRUE~"F")) %>%
-        mutate(is_family_friend = case_when(is_family_friend == "Family friend" ~ "T",
-                                   TRUE~"F")) %>%
-          mutate(is_other = case_when(is_other == "Other" ~ "T",
-                                   TRUE~"F")) %>%
-  count(not_caregiver, is_parent, is_teacher, is_grandparent, is_babysitter, is_aunt_uncle,
-           is_sibling, is_therapist, is_neighbour, is_family_friend, is_other, sort=T)
+#careg<- x_2022_september_qualtrics_data %>%
+ # select(c(not_caregiver, is_parent, is_teacher, is_grandparent, is_babysitter, is_aunt_uncle,
+  #         is_sibling, is_therapist, is_neighbour, is_family_friend, is_other))  %>%
+  #mutate(not_caregiver = case_when(not_caregiver == "I am not a caregiver" ~ "T",
+   #                                TRUE~"F")) %>%
+    #mutate(is_parent = case_when(is_parent == "Parent" ~ "T",
+     #                              TRUE~"F")) %>%
+    #mutate(is_teacher = case_when(is_teacher == "Teacher/Educator" ~ "T",
+     #                              TRUE~"F")) %>%
+      #mutate(is_grandparent = case_when(is_grandparent == "Grandparent" ~ "T",
+       #                            TRUE~"F")) %>%
+        #mutate(is_babysitter = case_when(is_babysitter == "Nanny/Babysitter" ~ "T",
+         #                          TRUE~"F")) %>%
+        #mutate(is_aunt_uncle = case_when(is_aunt_uncle == "Uncle/Aunt" ~ "T",
+         #                          TRUE~"F"))%>%
+        #mutate(is_sibling = case_when(is_sibling == "Sibling" ~ "T",
+         #                          TRUE~"F")) %>%
+        #mutate(is_therapist = case_when(is_therapist == "Therapist" ~ "T",
+         #                          TRUE~"F")) %>%
+        #mutate(is_neighbour = case_when(is_neighbour == "Neighbour" ~ "T",
+         #                          TRUE~"F")) %>%
+        #mutate(is_family_friend = case_when(is_family_friend == "Family friend" ~ "T",
+         #                          TRUE~"F")) %>%
+          #mutate(is_other = case_when(is_other == "Other" ~ "T",
+           #                        TRUE~"F")) %>%
+  #count(not_caregiver, is_parent, is_teacher, is_grandparent, is_babysitter, is_aunt_uncle,
+   #        is_sibling, is_therapist, is_neighbour, is_family_friend, is_other, sort=T)
 
-only_parents <- careg %>%
-  select(is_parent, n) %>%
-  filter (is_parent == "T") 
+#only_parents <- careg %>%
+ # select(is_parent, n) %>%
+#  filter (is_parent == "T") 
 
-sum(only_parents$n)
+#sum(only_parents$n)
 ```
 
 # main questions (Q5 onwards)
