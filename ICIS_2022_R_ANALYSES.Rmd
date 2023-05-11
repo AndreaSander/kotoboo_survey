@@ -144,7 +144,19 @@ round(range(as.numeric(x_2022_september_qualtrics_data$rate_completed))) #45-100
 round(sd(as.numeric(x_2022_september_qualtrics_data$rate_completed)), 2) # sd of 12.76%
 
 ```
+## 6. kotoboo visit (Q5 on questionnaire)
+```{r}
+visits <- x_2022_september_qualtrics_data %>%
+  select(visit_kotoboo)
 
+visits_table<- as.data.frame(table(visits$visit_kotoboo)) 
+
+visits_table<- visits_table %>%
+  mutate(percentage = round(Freq/nrow(x_2022_september_qualtrics_data)*100)) %>%
+  arrange(desc(percentage))
+
+visits_table
+```
 
 ## caregivers' breakdown---- not relevant any more as we decided to only keep parents. 
 ```{r}
@@ -195,86 +207,15 @@ round(sd(as.numeric(x_2022_september_qualtrics_data$rate_completed)), 2) # sd of
 #sum(only_parents$n)
 ```
 
-# main questions (Q5 onwards)
-## 5. kotoboo visit 
-```{r}
-visits <- x_2022_september_qualtrics_data %>%
-  select(visit_kotoboo)
 
-visits_table<- as.data.frame(table(visits$visit_kotoboo)) 
-
-visits_table<- visits_table %>%
-  mutate(percentage = round(Freq/nrow(x_2022_september_qualtrics_data)*100)) %>%
-  arrange(desc(percentage))
-
-visits_table
-```
-
-## 6. Helpfulness mode and mean
-```{r}
-count_helpfulness <- x_2022_september_qualtrics_data %>%
-  group_by(how_helpful_evidence_based) %>%
-  count(how_helpful_evidence_based)%>%
-  mutate(percentage = (n/126)*100) %>%
-  arrange(desc(percentage))
-
-count_helpfulness
-
-# mode
-find_mode(x_2022_september_qualtrics_data$how_helpful_evidence_based)
-
-# mean
-helpfulness <- x_2022_september_qualtrics_data %>%
-  mutate(helpfulness_numeric = case_when(
-    str_detect(how_helpful_evidence_based, "Not at all") ~ 1,
-    str_detect(how_helpful_evidence_based, "Somewhat") ~ 2,
-    str_detect(how_helpful_evidence_based, "Very helpful") ~ 3,
-    TRUE ~ NA_real_))
-
-mean(helpfulness$helpfulness_numeric, na.rm=T)
-
-# plot (n = 145)
-plot_helpfulness <- count_helpfulness %>%
-  # calculate percent
-  mutate(n_helpfulness = nrow(x_2022_september_qualtrics_data) - count_helpfulness$n[is.na(count_helpfulness$how_helpful_evidence_based)],
-         Proportion = n/n_helpfulness) %>%
-  # remove NAs
-  filter(!is.na(how_helpful_evidence_based)) %>%
-  # rename items
-  mutate(how_helpful_evidence_based = case_when(
-    str_detect(how_helpful_evidence_based, "Not at all") ~ "Not at all helpful",
-    str_detect(how_helpful_evidence_based, "Somewhat") ~ "Somewhat helpful",
-    str_detect(how_helpful_evidence_based, "Very helpful") ~ "Very helpful")) %>%
-  ggplot() + 
-  geom_bar(aes(x = factor(0), y = Proportion, 
-               fill = factor(how_helpful_evidence_based, 
-                             levels = c("Very helpful", "Somewhat helpful", "Not at all helpful"))), 
-               position="stack", stat="identity") +
-  coord_flip() + 
-  scale_fill_manual(values = c("#e31a1c", "#d9d9d9", "#3182bd")) +
-  theme_minimal(base_size = 20) +
-  theme(legend.position="bottom",
-        axis.title.y=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) +
-  guides(fill=guide_legend(title="Helpfulness", reverse = TRUE))
-
-plot_helpfulness 
-
-ggsave("plot_helpfulness.jpg", plot_helpfulness,
-       width = 12,
-       height = 4)
-
-```
-
-## 7. Internet search mode and mean
+# Main analysis
+## Internet search mode and mean (Q7 on questionnaire)
 ```{r}
 count_internet <- x_2022_september_qualtrics_data %>%
   group_by(how_often_internet) %>%
   count(how_often_internet) %>%
-    mutate(percentage = (n/126)*100) %>%
+  mutate(percentage = (n/nrow(x_2022_september_qualtrics_data))*100) %>%
   arrange(desc(percentage))
-  
 
 count_internet
 
@@ -295,9 +236,6 @@ mean(internet_freq$internet_freq_numeric, na.rm=T)
 
 # plot (n = 143)
 plot_internet_freq <- count_internet %>%
-  # calculate percent
-  mutate(n_internet = nrow(x_2022_september_qualtrics_data) - count_internet$n[is.na(count_internet$how_often_internet)],
-         Proportion = n/n_internet) %>%
   # remove NAs
   filter(!is.na(how_often_internet)) %>%
   # rename items
@@ -308,10 +246,11 @@ plot_internet_freq <- count_internet %>%
     str_detect(how_often_internet, "Often") ~ "Often (every other week)",
     str_detect(how_often_internet, "Frequently") ~ "Frequently (more than one a week)")) %>%
   ggplot() + 
-  geom_bar(aes(x = factor(0), y = Proportion, 
+  geom_bar(aes(x = factor(0), y = percentage, 
                fill = factor(how_often_internet, 
                              levels = c("Frequently (more than one a week)", "Often (every other week)", "Occasionally (once a month)", "Rarely (a few times a year)", "Never"))), 
                position="stack", stat="identity") +
+  ylab("Percentage") +
   coord_flip() + 
   scale_fill_manual(values = c("#e31a1c", "#fb9a99", "#d9d9d9", "#6baed6", "#3182bd")) +
   theme_minimal(base_size = 20) +
@@ -328,7 +267,8 @@ ggsave("plot_internet_freq.jpg", plot_internet_freq,
        height = 4)
 
 ```
-## 8. topics of interest
+
+## topics of interest (Q8 on questionnaire)
 ```{r}
 by_topic <- x_2022_september_qualtrics_data %>%
   select(starts_with("which_topics")) %>%
@@ -341,8 +281,8 @@ n_topics_per_participants <- by_topic %>%
   rowwise() %>% 
   mutate(sum = sum(c_across(where(is.numeric)), na.rm = T))
 
-mean(n_topics_per_participants$sum)
-sd(n_topics_per_participants$sum)
+round(mean(n_topics_per_participants$sum), 1)
+round(sd(n_topics_per_participants$sum), 2)
 range(n_topics_per_participants$sum)
 
 # boxplot showing number of choices
@@ -453,7 +393,64 @@ ggsave("plot_topic.jpg", plot_topic,
 #                                              TRUE ~1)) 
 ```
 
-## 9. Important features rating: Which features were top/bottom rated? -----
+## Helpfulness (Q6 on questionnaire)
+```{r}
+count_helpfulness <- x_2022_september_qualtrics_data %>%
+  group_by(how_helpful_evidence_based) %>%
+  count(how_helpful_evidence_based)%>%
+  mutate(percentage = (n/nrow(x_2022_september_qualtrics_data))*100) %>%
+  arrange(desc(percentage))
+
+count_helpfulness
+
+# mode
+find_mode(x_2022_september_qualtrics_data$how_helpful_evidence_based)
+
+# mean
+helpfulness <- x_2022_september_qualtrics_data %>%
+  mutate(helpfulness_numeric = case_when(
+    str_detect(how_helpful_evidence_based, "Not at all") ~ 1,
+    str_detect(how_helpful_evidence_based, "Somewhat") ~ 2,
+    str_detect(how_helpful_evidence_based, "Very helpful") ~ 3,
+    TRUE ~ NA_real_))
+
+mean(helpfulness$helpfulness_numeric, na.rm=T)
+
+# plot (n = 145)
+plot_helpfulness <- count_helpfulness %>%
+  # remove NAs
+  filter(!is.na(how_helpful_evidence_based)) %>%
+  # rename items
+  mutate(how_helpful_evidence_based = case_when(
+    str_detect(how_helpful_evidence_based, "Not at all") ~ "Not at all helpful",
+    str_detect(how_helpful_evidence_based, "Somewhat") ~ "Somewhat helpful",
+    str_detect(how_helpful_evidence_based, "Very helpful") ~ "Very helpful")) %>%
+  ggplot() + 
+  geom_bar(aes(x = factor(0), y = percentage, 
+               fill = factor(how_helpful_evidence_based, 
+                             levels = c("Very helpful", "Somewhat helpful", "Not at all helpful"))), 
+               position="stack", stat="identity") +
+  ylab("Percentage") +
+  coord_flip() + 
+  scale_fill_manual(values = c("#e31a1c", "#d9d9d9", "#3182bd")) +
+  theme_minimal(base_size = 20) +
+  theme(legend.position="bottom",
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +
+  guides(fill=guide_legend(title="Helpfulness", reverse = TRUE))
+
+plot_helpfulness 
+
+ggsave("plot_helpfulness.jpg", plot_helpfulness,
+       width = 12,
+       height = 4)
+
+```
+
+
+
+## Important features rating: Which features were top/bottom rated? (Q9 on questionnaire)
 ### Descriptives
 First, we will find out the top-3 and bottom-3 features (* removing "other" from the analysis)
 ```{r}
@@ -494,55 +491,57 @@ mean_feature_rating <- data_feature %>%
 #                   pivot_wider(id_cols = response_id, names_from = feature, values_from = rating) %>%
 #                   select(-response_id))
 
-plot_mean_feature_rating <- mean_feature_rating %>%
-  ggplot(aes(x = reorder(feature, -mean_rating), y = mean_rating)) +
-  geom_point(size = 5) + 
-  theme_minimal() +
-  scale_y_continuous(limits = c(1, 14), breaks = seq(1, 14, by = 1)) +
-  labs(x = "Feature",
-       y = "Importance rating averaged across participants") + 
-  coord_flip() +
-  annotate("text", x=1, y=2, label="most important ←", color="red") +
-  annotate("text", x=1, y=13, label="→ least important", color ="red")
+#plot_mean_feature_rating <- mean_feature_rating %>%
+#  ggplot(aes(x = reorder(feature, -mean_rating), y = mean_rating)) +
+#  geom_point(size = 5) + 
+#  theme_minimal() +
+#  scale_y_continuous(limits = c(1, 14), breaks = seq(1, 14, by = 1)) +
+#  labs(x = "Feature",
+#       y = "Importance rating averaged across participants") + 
+#  coord_flip() +
+#  annotate("text", x=1, y=2, label="most important ←", color="red") +
+#  annotate("text", x=1, y=13, label="→ least important", color ="red")
 
 
-# visualize all variables by number of participants voted per feature
-plot_feature_all <- data_feature %>%
-  count(rating, feature) %>% # count combos of rating & feature
-  ggplot(aes(x = rating, y = n, fill = factor(feature, levels = as.vector(mean_feature_rating$feature)))) +
-  geom_col(position = "fill") +
-  theme_minimal() +
-  scale_x_continuous(breaks=seq(1, 14, 1)) +
-  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ff7f00", "#fdbf6f", 
-                               "#ffed6f", "#b2df8a", "#33a02c", "#02818a",
-                               "#a6cee3", "#1f78b4", "#cab2d6", "#6a3d9a")) +
-  labs(x = "Rating (with 1 being the most important)",
-       y = "Proportion of participants",
-       fill = "Feature")
+## visualize all variables by number of participants voted per feature
+#plot_feature_all <- data_feature %>%
+#  count(rating, feature) %>% # count combos of rating & feature
+#  ggplot(aes(x = rating, y = n, fill = factor(feature, levels = as.vector(mean_feature_rating$feature)))) +
+#  geom_col(position = "fill") +
+#  theme_minimal() +
+#  scale_x_continuous(breaks=seq(1, 14, 1)) +
+#  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ff7f00", "#fdbf6f", 
+#                               "#ffed6f", "#b2df8a", "#33a02c", "#02818a",
+#                               "#a6cee3", "#1f78b4", "#cab2d6", "#6a3d9a")) +
+#  labs(x = "Rating (with 1 being the most important)",
+#       y = "Proportion of participants",
+#       fill = "Feature")
 
-plot_feature_per_feature <- data_feature %>%
-  count(rating, feature) %>%
-  group_by(rating) %>%
-  mutate(rating = as.factor(rating),
+#plot_feature_per_feature <- data_feature %>%
+#  count(rating, feature) %>%
+#  group_by(rating) %>%
+#  mutate(rating = as.factor(rating),
          #sum = sum(n),
-         prop = n/161) %>%
-  ungroup() %>%
-  #mutate(feature = match(as.vector(mean_feature_rating$feature), feature)) %>%
-  #filter(!is.na(rating)) %>%
-  ggplot(aes(x = fct_rev(factor(feature, levels = as.vector(mean_feature_rating$feature))), 
-             y = prop, 
-             fill = rating)) +
-  geom_bar(position="stack", stat="identity") +
-  theme_minimal() +
-  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ff7f00", "#fdbf6f", 
-                               "#ffed6f", "#ffff99", "#b2df8a", "#33a02c", "#02818a",
-                               "#a6cee3", "#1f78b4", "#cab2d6", "#6a3d9a",  "#999999")) +
-  coord_flip() +
-  labs(x = "Feature",
-       y = "Proportion of participants",
-       fill = "Importance rating")
+#         prop = n/161,
+#         ) %>%
+#  ungroup() %>%
+#  #mutate(feature = match(as.vector(mean_feature_rating$feature), feature)) %>%
+#  #filter(!is.na(rating)) %>%
+#  ggplot(aes(x = fct_rev(factor(feature, levels = as.vector(mean_feature_rating$feature))), 
+#             y = prop, 
+#             fill = rating)) +
+#  geom_bar(position="stack", stat="identity") +
+#  theme_minimal() +
+#  scale_fill_manual(values = c("#a50026", "#e31a1c", "#fb9a99", "#ff7f00", "#fdbf6f", 
+#                               "#ffed6f", "#ffff99", "#b2df8a", "#33a02c", "#02818a",
+#                               "#a6cee3", "#1f78b4", "#cab2d6", "#6a3d9a",  "#999999")) +
+#  coord_flip() +
+#  labs(x = "Feature",
+#       y = "Proportion of participants",
+#       fill = "Importance rating")
 
 ```
+
 
 ### Interrater reliability per feature
 Here, we run inter-rater reliability analysis on the top-3 and bottom-3 rated features. Each feature is run separately. 
@@ -569,26 +568,28 @@ feature_bottom_3 <- mean_feature_rating %>%
 
 # ---- Plot proportion of participants in the top3 and bottom3 features ----
 plot_feature_top3_bottom3 <- data_feature %>%
+  filter(!is.na(rating)) %>% # remove NAs
   mutate(rating = if_else(rating > 3 & rating < 12, "others", as.character(rating))) %>%
   count(rating, feature) %>%
-  filter(!is.na(rating)) %>% # remove NAs
+#  filter(!is.na(rating)) %>% # remove NAs
   group_by(rating) %>%
   mutate(rating = as.factor(rating),
          #sum = sum(n),
-         prop = n/mean_feature_rating$n[1]) %>%
+         prop = n/mean_feature_rating$n[1],
+         percentage = (n/mean_feature_rating$n[1] * 100)) %>%
   ungroup() %>%
   #mutate(feature = match(as.vector(mean_feature_rating$feature), feature)) %>%
   ggplot(aes(x = fct_rev(factor(feature, levels = as.vector(mean_feature_rating$feature))), 
-             y = prop, 
+             y = percentage, 
              fill = factor(rating, levels = c("1", "2", "3", "others", "12", "13", "14")))) +
   geom_bar(position="stack", stat="identity") +
   theme_minimal(base_size = 20) +
   scale_fill_manual(labels = c("1st", "2nd", "3rd", "top 4th to bottom 4th", "3rd last", "2nd last", "last"), 
                     values = c("#a50026", "#e31a1c", "#fb9a99", "#d9d9d9", "#6baed6", "#3182bd", "#08519c")) +
-  scale_y_continuous(breaks = seq(0, 1, by = 0.1)) +
+  scale_y_continuous(breaks = seq(0, 100, by = 10)) +
   coord_flip() +
   labs(x = "Feature",
-       y = "Proportion of participants",
+       y = "Percentage of participants",
        fill = "Importance rating") 
   
 ggsave("plot_feature_top3_bottom3.jpg", plot_feature_top3_bottom3,
@@ -724,27 +725,27 @@ data_relation <- x_2022_september_qualtrics_data %>%
     binary_how_often_internet = as.factor(binary_how_often_internet)
     )
 
-relation_model <- data_relation %>%
-  select(-c(country, starts_with("importance_"))) %>%
-  glm(binary_feature ~ binary_how_often_internet * binary_country, 
-      family = binomial, 
-      data = .,
-      contrasts = list(binary_how_often_internet = contr.sum(2)/2,
-                       binary_country = contr.sum(2)/2)
-      )
+#relation_model <- data_relation %>%
+#  select(-c(country, starts_with("importance_"))) %>%
+#  glm(binary_feature ~ binary_how_often_internet * binary_country, 
+#      family = binomial, 
+#      data = .,
+#      contrasts = list(binary_how_often_internet = contr.sum(2)/2,
+#                       binary_country = contr.sum(2)/2)
+#      )
 
-relation_model_noInteraction <- data_relation %>%
-  select(-c(country, starts_with("importance_"))) %>%
-  glm(binary_feature ~ binary_how_often_internet + binary_country, 
-      family = binomial, 
-      data = .,
-      contrasts = list(binary_how_often_internet = contr.sum(2)/2,
-                       binary_country = contr.sum(2)/2)
-      )
+#relation_model_noInteraction <- data_relation %>%
+#  select(-c(country, starts_with("importance_"))) %>%
+#  glm(binary_feature ~ binary_how_often_internet + binary_country, 
+#      family = binomial, 
+#      data = .,
+#      contrasts = list(binary_how_often_internet = contr.sum(2)/2,
+#                       binary_country = contr.sum(2)/2)
+#      )
 
 relation_model_noCountry <- data_relation %>%
   select(-c(country, starts_with("importance_"))) %>%
-  glm(binary_feature ~ binary_how_often_internet, 
+  glmer(binary_feature ~ binary_how_often_internet + (1|response_id), 
       family = binomial, 
       data = .,
       contrasts = list(binary_how_often_internet = contr.sum(2)/2)
@@ -752,7 +753,7 @@ relation_model_noCountry <- data_relation %>%
 
 anova(relation_model_noCountry, relation_model, test="Chi")
 
-broom::tidy(relation_model_noCountry) %>%
+broom.mixed::tidy(relation_model_noCountry) %>%
   as.data.frame %>%
   rename(SE = `std.error`, 
          z = `statistic`,
@@ -767,11 +768,14 @@ broom::tidy(relation_model_noCountry) %>%
 ```
 
 
-## 10. comics and participation mode and mean
+## comics and participation mode and mean (Q10 on questionnaire)
 ```{r}
 count_participation<- x_2022_september_qualtrics_data %>%
   group_by(participate_in_science) %>%
-  count(participate_in_science)
+  count(participate_in_science) %>%
+  mutate(percentage = (n/nrow(x_2022_september_qualtrics_data))*100) %>%
+  arrange(desc(percentage))
+
 
 count_participation
 
@@ -792,9 +796,6 @@ mean(helpfulness$helpfulness_numeric, na.rm=T)
 
 # plot (n = 123)
 plot_participation <- count_participation %>%
-  # calculate percent
-  mutate(n_participation = nrow(x_2022_september_qualtrics_data) - count_participation$n[is.na(count_participation$participate_in_science)],
-         Proportion = n/n_participation) %>%
   # remove NAs
   filter(!is.na(participate_in_science)) %>%
   # rename items
@@ -804,10 +805,12 @@ plot_participation <- count_participation %>%
     str_detect(participate_in_science, "neither") ~ "Neither",
     str_detect(participate_in_science, "Yes") ~ "Motivate")) %>%
   ggplot() + 
-  geom_bar(aes(x = factor(0), y = Proportion, 
+  geom_bar(aes(x = factor(0), y = percentage, 
                fill = factor(participate_in_science, 
                              levels = c("Motivate", "Neither", "Haven't thought about it", "Discourage"))), 
                position="stack", stat="identity") +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 25)) +
+  ylab("Percentage") +
   coord_flip() + 
   scale_fill_manual(values = c("#e31a1c", "#d9d9d9", "#6baed6", "#3182bd")) +
   theme_minimal(base_size = 20) +
@@ -826,6 +829,19 @@ ggsave("plot_participation.jpg", plot_participation,
 ```
 
 
+## future comic ideas (Q11 on questionnaire)
+```{r}
+count_idea <- x_2022_september_qualtrics_data %>%
+  mutate(comic_ideas = as.factor(comic_ideas)) %>%
+  count(comic_ideas)
+
+count_idea 
+
+idea_topics <-  x_2022_september_qualtrics_data %>%
+  filter(comic_ideas == "Yes") %>%
+  select(comic_ideas, comic_ideas_text)
+
+```
 
 
 #------------ PLOTS--------------------
