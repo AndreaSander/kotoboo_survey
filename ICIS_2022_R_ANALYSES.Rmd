@@ -31,23 +31,18 @@ find_mode <- function(x) {
 ```{r}
 x_2022_september_qualtrics_data <- read_excel("2022_september_qualtrics_data.xlsx", col_names=c("start_date", "end_date", "response_type", "progress", "duration_s", "finished", "recorded_date", "response_id","distribution_channel", "user_language", "recaptcha_score","consent", "year_birth", "gender","country", "not_caregiver", "is_parent","is_teacher","is_grandparent", "is_babysitter","is_aunt_uncle","is_sibling","is_therapist", "is_neighbour","is_family_friend", "is_other","visit_kotoboo", "how_helpful_evidence_based", "how_often_internet","which_topics_bilingualism","which_topics_screen_time","which_topics_lang_diversity","which_topics_sign_langauge","which_topics_foster_language","which_topics_reading_writing","which_topics_langauge_dev_disorders","which_topics_mythbusters","importance_concrete_advice", "importance_free","importance_easy_to_access", "importance_understandable", "importance_engaging","importance_EDI", "importance_social_media", "importance_reliable","importance_evidence_based", "importance_unpretentious", "importance_respectful","importance_fun", "importance_unbiased", "importance_other","importance_other_text", "participate_in_science", "comic_ideas", "comic_ideas_text", "sc0_score", "language", "q_language"))
 
-x_2022_september_qualtrics_data<- x_2022_september_qualtrics_data [-c(1,2,3,4),]
+x_2022_september_qualtrics_data <- x_2022_september_qualtrics_data [-c(1,2,3,4),]
+
 ```
 
 
 # exclude data
 ```{r}
-#203 (n of pre-exclusion)
-x_2022_september_qualtrics_data <- x_2022_september_qualtrics_data %>%
-  filter(recaptcha_score >=.80) %>% #200 3 excluded
-  filter(year_birth <=2004) %>% #161 39 excluded
-  filter(year_birth >=1922) %>% #161 0 excluded
-  filter(consent=="I consent")%>% #161 0 excluded
-  filter(is_parent=="Parent") #127 34 excluded
+# total number of response
+nrow(x_2022_september_qualtrics_data) # n = 203 (n of pre-exclusion)
 
-#range(as.numeric(x_2022_september_qualtrics_data$progress)) #50-100 completed
 
-# further exclude based on the completion rate (i.e., no response from Q5 onwards)
+# identify those who did not satisfy the completion rate (i.e., no response from Q5 onwards)
 ## first, check completion per question
 x_2022_september_qualtrics_data <- x_2022_september_qualtrics_data %>%
   # check if there's any response (flag NA = 0)
@@ -74,9 +69,16 @@ exclusion_completion <- x_2022_september_qualtrics_data %>%
   filter(no_response == 1) %>%
   distinct(response_id)
 
-## remove those response_id from the data
-x_2022_september_qualtrics_data <- x_2022_september_qualtrics_data %>%
-  anti_join(exclusion_completion) # 1 more excluded
+
+# now run all the exclusion criteria
+## 203 (n of pre-exclusion)
+x_2022_september_qualtrics_data2 <- x_2022_september_qualtrics_data %>%
+  filter(recaptcha_score >=.80) %>% #200 3 excluded
+  filter(year_birth <=2004) %>% #161 39 excluded
+  filter(year_birth >=1922) %>% #161 0 excluded
+  filter(consent=="I consent") %>% #161 0 excluded
+  anti_join(exclusion_completion) %>% #149 12 excluded
+  filter(is_parent=="Parent") #126 23 excluded
 
 ```
 
