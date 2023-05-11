@@ -212,9 +212,12 @@ visits_table
 ## Internet search mode and mean (Q7 on questionnaire)
 ```{r}
 count_internet <- x_2022_september_qualtrics_data %>%
+  filter(!is.na(how_often_internet)) %>%
   group_by(how_often_internet) %>%
   count(how_often_internet) %>%
-  mutate(percentage = (n/nrow(x_2022_september_qualtrics_data))*100) %>%
+  ungroup() %>%
+  mutate(n_total = sum(n),
+         percentage = (n/n_total)*100) %>%
   arrange(desc(percentage))
 
 count_internet
@@ -236,8 +239,8 @@ mean(internet_freq$internet_freq_numeric, na.rm=T)
 
 # plot (n = 143)
 plot_internet_freq <- count_internet %>%
-  # remove NAs
-  filter(!is.na(how_often_internet)) %>%
+  ## remove NAs
+  #filter(!is.na(how_often_internet)) %>%
   # rename items
   mutate(how_often_internet = case_when(
     str_detect(how_often_internet, "Never") ~ "Never",
@@ -396,9 +399,12 @@ ggsave("plot_topic.jpg", plot_topic,
 ## Helpfulness (Q6 on questionnaire)
 ```{r}
 count_helpfulness <- x_2022_september_qualtrics_data %>%
+  filter(!is.na(how_helpful_evidence_based)) %>%
   group_by(how_helpful_evidence_based) %>%
   count(how_helpful_evidence_based)%>%
-  mutate(percentage = (n/nrow(x_2022_september_qualtrics_data))*100) %>%
+  ungroup() %>%
+  mutate(n_total = sum(n),
+         percentage = (n/n_total)*100) %>%
   arrange(desc(percentage))
 
 count_helpfulness
@@ -418,8 +424,8 @@ mean(helpfulness$helpfulness_numeric, na.rm=T)
 
 # plot (n = 145)
 plot_helpfulness <- count_helpfulness %>%
-  # remove NAs
-  filter(!is.na(how_helpful_evidence_based)) %>%
+  ## remove NAs
+  #filter(!is.na(how_helpful_evidence_based)) %>%
   # rename items
   mutate(how_helpful_evidence_based = case_when(
     str_detect(how_helpful_evidence_based, "Not at all") ~ "Not at all helpful",
@@ -771,11 +777,13 @@ broom.mixed::tidy(relation_model_noCountry) %>%
 ## comics and participation mode and mean (Q10 on questionnaire)
 ```{r}
 count_participation<- x_2022_september_qualtrics_data %>%
+  filter(!is.na(participate_in_science)) %>%
   group_by(participate_in_science) %>%
   count(participate_in_science) %>%
-  mutate(percentage = (n/nrow(x_2022_september_qualtrics_data))*100) %>%
+  ungroup() %>%
+  mutate(n_total = sum(n),
+         percentage = (n/n_total)*100) %>%
   arrange(desc(percentage))
-
 
 count_participation
 
