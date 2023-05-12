@@ -820,7 +820,7 @@ plot_participation <- count_participation %>%
   scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 25)) +
   ylab("Percentage") +
   coord_flip() + 
-  scale_fill_manual(values = c("#e31a1c", "#d9d9d9", "#6baed6", "#3182bd")) +
+  scale_fill_manual(values = c("#e31a1c", "#d9d9d9", "#878787", "#3182bd")) +
   theme_minimal(base_size = 20) +
   theme(legend.position="bottom",
         axis.title.y=element_blank(),
