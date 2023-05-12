@@ -757,7 +757,7 @@ relation_model_noCountry <- data_relation %>%
       contrasts = list(binary_how_often_internet = contr.sum(2)/2)
       )
 
-anova(relation_model_noCountry, relation_model, test="Chi")
+#anova(relation_model_noCountry, relation_model, test="Chi")
 
 broom.mixed::tidy(relation_model_noCountry) %>%
   as.data.frame %>%
@@ -839,15 +839,19 @@ ggsave("plot_participation.jpg", plot_participation,
 
 ## future comic ideas (Q11 on questionnaire)
 ```{r}
-count_idea <- x_2022_september_qualtrics_data %>%
-  mutate(comic_ideas = as.factor(comic_ideas)) %>%
-  count(comic_ideas)
+#count_idea <- x_2022_september_qualtrics_data %>%
+#  mutate(comic_ideas = as.factor(comic_ideas)) %>%
+#  count(comic_ideas)
 
-count_idea 
+#count_idea 
 
 idea_topics <-  x_2022_september_qualtrics_data %>%
   filter(comic_ideas == "Yes") %>%
-  select(comic_ideas, comic_ideas_text)
+  select(response_id, comic_ideas, comic_ideas_text) %>%
+  filter(!is.na(comic_ideas_text))
+
+# number of response = 25
+nrow(idea_topics)
 
 ```
 
